@@ -2,7 +2,7 @@ import { ArrowRight, Building2, FlaskConical } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Logo } from '../components/AppLayout'
-import { Badge, Button, Input, Notice, Skeleton, Unavailable } from '../components/ui'
+import { Badge, Button, Input, Notice, Skeleton } from '../components/ui'
 import { errorMessage } from '../lib/api'
 import { useAuth, usePublicConfig } from '../lib/auth'
 import { industryLabel, type DemoBusiness } from '../lib/types'
@@ -82,7 +82,7 @@ function GoogleButton() {
     }
   }, [clientId, loginWithGoogle])
 
-  if (!clientId) return <Unavailable label="Continue with Google" reason="Google sign-in is not configured on this server yet." />
+  if (!clientId) return null
   return (
     <div>
       <div ref={container} />
@@ -124,7 +124,7 @@ function FacebookButton() {
   const [error, setError] = useState<string | null>(null)
   const appId = data?.facebookEnabled ? data.facebookAppId : null
 
-  if (!appId || !data) return <Unavailable label="Continue with Facebook" reason="Facebook sign-in is not configured on this server yet." />
+  if (!appId || !data) return null
   const version = data.facebookGraphVersion
 
   async function start(id: string) {
@@ -162,20 +162,23 @@ function FacebookButton() {
   )
 }
 
+/**
+ * Google and Facebook buttons. Each appears only once its credentials are configured on the server, so visitors
+ * never see a button that cannot work. Setup steps are in docs/SOCIAL_LOGIN.md.
+ */
 function SocialSignIn() {
+  const { data } = usePublicConfig()
+  if (!data?.googleEnabled && !data?.facebookEnabled) return null
   return (
-    <div className="space-y-3">
-      <GoogleButton />
-      <FacebookButton />
-    </div>
-  )
-}
-
-function Divider() {
-  return (
-    <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
-      <span className="h-px flex-1 bg-slate-200" /> or <span className="h-px flex-1 bg-slate-200" />
-    </div>
+    <>
+      <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
+        <span className="h-px flex-1 bg-slate-200" /> or <span className="h-px flex-1 bg-slate-200" />
+      </div>
+      <div className="space-y-3">
+        {data.googleEnabled && <GoogleButton />}
+        {data.facebookEnabled && <FacebookButton />}
+      </div>
+    </>
   )
 }
 
@@ -232,7 +235,6 @@ export function LoginPage() {
           Sign in
         </Button>
       </form>
-      <Divider />
       <SocialSignIn />
     </AuthShell>
   )
@@ -287,7 +289,6 @@ export function RegisterPage() {
           <p className="text-xs leading-relaxed text-slate-500">You can search and compare prices without an account. An account lets you save products to come back to.</p>
         </form>
       )}
-      <Divider />
       <SocialSignIn />
     </AuthShell>
   )

@@ -73,8 +73,8 @@ test.describe('public site', () => {
     await page.getByLabel('Password').fill('wrong-password-1')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('alert')).toContainText('The email or password is incorrect.')
-    await expect(page.getByText('Google sign-in is not configured on this server yet.')).toBeVisible()
-    await expect(page.getByText('Facebook sign-in is not configured on this server yet.')).toBeVisible()
+    // Social sign-in buttons only appear once their credentials are configured.
+    await expect(page.getByText('Continue with Facebook')).toHaveCount(0)
   })
 
   test('Try Demo opens a sample business without sign-up', async ({ page }) => {
