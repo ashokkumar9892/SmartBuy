@@ -1,0 +1,46 @@
+# Netlify build for the SmartBuy AI frontend (a static Vite single-page app).
+# The API is a separate ASP.NET Core service. Tell the frontend where it is in ONE of two ways:
+#
+#   A) Set the environment variable VITE_API_BASE_URL in Netlify (Site configuration > Environment variables)
+#      to the API's public HTTPS origin, e.g. https://api.example.com, and add this site's URL to the API's
+#      Cors__AllowedOrigins setting. Redeploy after changing it (Vite reads it at build time).
+#
+#   B) Leave VITE_API_BASE_URL unset and uncomment the /api proxy rule below, so the browser only ever talks to
+#      this site's own origin (no CORS needed).
+
+[build]
+  base = "frontend"
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Option B: same-origin proxy to the API. Replace the host and uncomment. Must stay ABOVE the SPA fallback.
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://api.example.com/api/:splat"
+#   status = 200
+#   force = true
+
+# Single-page app fallback: every unknown path serves index.html so deep links and refreshes work.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    # connect-src allows any HTTPS origin because the API host is deployment-specific; tighten it to your API origin.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data:; font-src 'self'; connect-src 'self' https:; frame-src https://accounts.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

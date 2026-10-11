@@ -266,7 +266,7 @@ public static partial class HeuristicListParser
     private static partial Regex Preamble();
 
     // Split on newlines, semicolons, commas and " and " — but not on commas inside numbers.
-    [GeneratedRegex(@"\r?\n|;|,(?!\d{3})\s*(?:and\s+)?|\s+and\s+(?=(?:\d|a\s|an\s|one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty|fifty)\b)|\s+plus\s+", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\r?\n|;|(?<=[a-z]{3})\.\s+(?=\d)|,(?!\d{3})\s*(?:and\s+)?|\s+and\s+(?=(?:\d|a\s|an\s|one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty|fifty)\b)|\s+plus\s+", RegexOptions.IgnoreCase)]
     private static partial Regex SegmentSplit();
 
     [GeneratedRegex(@"^\s*(?:[-*•]\s*|\(?\d+[.)]\s+)?\(?(?<qty>\d[\d,]*(?:\.\d+)?|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\)?(?:\s*(?:x|×)\s+|\s+|(?=(?:ft|in|lb|lbs|gal|pcs|pc|ea|qt|oz|yd|sqft|m)\b))(?<rest>\S.*)$", RegexOptions.IgnoreCase)]

@@ -14,13 +14,6 @@ public interface ITenantContext
     bool BypassTenantFilter { get; }
 }
 
-public sealed class SystemTenantContext : ITenantContext
-{
-    public Guid? OrganizationId { get; set; }
-    public Guid? UserId { get; set; }
-    public bool BypassTenantFilter { get; set; } = true;
-}
-
 public class TenantIsolationException(string message) : InvalidOperationException(message);
 
 public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext tenant) : DbContext(options)
@@ -289,6 +282,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         foreach (var entityType in b.Model.GetEntityTypes())
         {
             var clr = entityType.ClrType;
+            // Keys are created in the Entity constructor. Declaring them as never store-generated makes EF treat a new
+            // child added to a tracked parent's collection as an insert instead of mistaking it for an existing row.
+            if (typeof(Entity).IsAssignableFrom(clr))
+                b.Entity(clr).Property(nameof(Entity.Id)).ValueGeneratedNever();
             foreach (var property in entityType.GetProperties())
             {
                 if (property.ClrType == typeof(DateTime)) property.SetValueConverter(utc);

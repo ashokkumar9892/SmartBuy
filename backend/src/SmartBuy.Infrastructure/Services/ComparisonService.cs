@@ -144,7 +144,7 @@ public sealed class ComparisonService(
     {
         PurchasingStrategy.LowestCost => "Minimizes the estimated total of merchandise plus known shipping across all suppliers.",
         PurchasingStrategy.FastestDelivery => "Chooses the offers that arrive soonest, then the cheapest among those.",
-        _ => $"Weighs cost against speed: each delivery day counts as {ProcurementOptimizer.BalancedDayWeight:P0} of a line's cost and preferred suppliers get a {ProcurementOptimizer.BalancedPreferenceCredit:P0} credit."
+        _ => $"Weighs cost against speed: each delivery day counts as {ProcurementOptimizer.BalancedDayWeight * 100:0}% of a line's cost and preferred suppliers get a {ProcurementOptimizer.BalancedPreferenceCredit * 100:0}% credit."
     };
 
     public async Task<ComparisonResult> CompareAsync(Guid projectId, bool forceRefresh, bool record, CancellationToken ct)

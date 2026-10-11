@@ -127,9 +127,11 @@ public static partial class ProductMatcher
         // 4. Verified technical specifications (needs several agreeing critical specs plus a plausible title).
         if (specs.Agreements.Count >= 2 && specs.MissingOnListing.Count == 0 && similarity >= 0.25)
         {
-            var confidence = Math.Min(0.90, 0.74 + 0.04 * Math.Min(specs.Agreements.Count, 4));
+            var confidence = Math.Min(0.90, 0.78 + 0.04 * Math.Min(specs.Agreements.Count, 3));
+            // Agreeing specifications with a weak title is not enough to skip review.
+            if (similarity < 0.5) confidence = Math.Min(confidence, 0.80);
             reasons.Add($"{specs.Agreements.Count} critical specifications agree ({string.Join(", ", specs.Agreements)})");
-            reasons.Add($"Title similarity {similarity:P0}");
+            reasons.Add($"Title similarity {similarity * 100:0}%");
             return Finish(candidate, MatchMethod.Specifications, confidence, specs, unitCompatible, reasons);
         }
 
@@ -138,7 +140,7 @@ public static partial class ProductMatcher
         {
             var confidence = Math.Min(TitleOnlyCap, similarity * TitleOnlyCap);
             if (confidence < ReviewThreshold) return null;
-            reasons.Add($"Title similarity {similarity:P0} only — names alone are not proof of equivalence");
+            reasons.Add($"Title similarity {similarity * 100:0}% only — names alone are not proof of equivalence");
             if (specs.MissingOnListing.Count > 0)
                 reasons.Add($"Supplier listing does not state: {string.Join(", ", specs.MissingOnListing)}");
             return Finish(candidate, MatchMethod.TitleSimilarity, confidence, specs, unitCompatible, reasons);
@@ -230,8 +232,13 @@ public static partial class ProductMatcher
             _ => m.Groups[1].Value
         });
         var sb = new StringBuilder();
-        foreach (var ch in s)
-            if (char.IsLetterOrDigit(ch) || ch == '.') sb.Append(ch);
+        for (var i = 0; i < s.Length; i++)
+        {
+            var ch = s[i];
+            // Keep a period only when it is a decimal point ("0.75"), not an abbreviation mark ("in.").
+            var isDecimalPoint = ch == '.' && i > 0 && i + 1 < s.Length && char.IsDigit(s[i - 1]) && char.IsDigit(s[i + 1]);
+            if (char.IsLetterOrDigit(ch) || isDecimalPoint) sb.Append(ch);
+        }
         return sb.ToString();
     }
 

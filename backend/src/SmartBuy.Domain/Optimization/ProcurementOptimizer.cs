@@ -4,6 +4,9 @@ namespace SmartBuy.Domain.Optimization;
 
 public enum PurchasingStrategy { LowestCost = 0, FastestDelivery = 1, Balanced = 2 }
 
+/// <summary>Auto picks exhaustive search for small problems. The explicit modes exist so the two can be compared in tests.</summary>
+public enum SearchMode { Auto = 0, Exhaustive = 1, Heuristic = 2 }
+
 public sealed record ItemRequirement(Guid ItemId, string Description, decimal Quantity, string Unit);
 
 /// <summary>One way to fill one list item: a specific supplier offer with packs already fitted to the requirement.</summary>
@@ -66,7 +69,19 @@ public static class ProcurementOptimizer
     public const decimal BalancedDayWeight = 0.03m;
     /// <summary>Balanced strategy: preferred suppliers receive this fractional credit on line cost.</summary>
     public const decimal BalancedPreferenceCredit = 0.03m;
+    /// <summary>Ranking-only stand-in for unknown shipping when no supplier in the problem publishes a rate.</summary>
+    public const decimal DefaultUnknownShippingAssumption = 15m;
     private const decimal InfeasiblePenalty = 10_000_000m;
+
+    /// <summary>
+    /// Amount assumed, for ranking only, when a supplier does not publish shipping: the highest flat fee any supplier in
+    /// the problem charges. This stops "unknown" from being ranked as if it were free. It is never added to a total.
+    /// </summary>
+    public static decimal UnknownShippingAssumption(OptimizationProblem problem)
+    {
+        var known = problem.Suppliers.Values.Where(s => s.ShippingFlatFee is not null).Select(s => s.ShippingFlatFee!.Value).ToList();
+        return known.Count > 0 ? known.Max() : DefaultUnknownShippingAssumption;
+    }
 
     private readonly record struct Key(decimal A, decimal B, decimal C) : IComparable<Key>
     {
@@ -87,9 +102,10 @@ public static class ProcurementOptimizer
         public required SupplierTerms[] Suppliers;
         public required int? Deadline;
         public required PurchasingStrategy Strategy;
+        public required decimal UnknownShipping;
     }
 
-    public static PurchasingPlan Optimize(OptimizationProblem problem, PurchasingStrategy strategy, IReadOnlyDictionary<Guid, OfferOption>? seed = null)
+    public static PurchasingPlan Optimize(OptimizationProblem problem, PurchasingStrategy strategy, IReadOnlyDictionary<Guid, OfferOption>? seed = null, SearchMode mode = SearchMode.Auto)
     {
         var fillable = problem.Items.Where(i => problem.Options.TryGetValue(i.ItemId, out var o) && o.Count > 0).ToArray();
         var unfilled = problem.Items.Where(i => !fillable.Contains(i)).ToList();
@@ -108,7 +124,8 @@ public static class ProcurementOptimizer
             SupplierIndex = options.Select(row => row.Select(o => supplierPos[o.SupplierId]).ToArray()).ToArray(),
             Suppliers = supplierIds.Select(id => problem.Suppliers.TryGetValue(id, out var t) ? t : new SupplierTerms(id, "Unknown supplier", null, null, null)).ToArray(),
             Deadline = problem.DeadlineDays,
-            Strategy = strategy
+            Strategy = strategy,
+            UnknownShipping = UnknownShippingAssumption(problem)
         };
 
         long combinations = 1;
@@ -120,7 +137,7 @@ public static class ProcurementOptimizer
 
         int[] best;
         string method;
-        if (combinations <= ExhaustiveLimit)
+        if (mode == SearchMode.Exhaustive || (mode == SearchMode.Auto && combinations <= ExhaustiveLimit))
         {
             best = Exhaustive(model);
             method = "exhaustive";
@@ -193,7 +210,7 @@ public static class ProcurementOptimizer
         var notes = new List<string>();
         if (unfilled.Count > 0) notes.Add($"{unfilled.Count} item(s) have no usable supplier offer and are not included in any total.");
         foreach (var s in totals.Suppliers.Where(s => s.Shipping is null))
-            notes.Add($"Shipping from {s.SupplierName} is unknown and is not included in the total.");
+            notes.Add($"Shipping from {s.SupplierName} is unknown and is not included in the total. For ranking only, it was assumed to be ${UnknownShippingAssumption(problem):0.00} so that an unknown charge is never treated as free.");
         if (totals.TaxUnknown) notes.Add("No tax rate is set for this organization, so tax is not included in the total.");
         foreach (var s in totals.Suppliers.Where(s => s.BelowMinimumOrder))
             notes.Add($"The order from {s.SupplierName} is below that supplier's minimum order amount.");
@@ -245,7 +262,7 @@ public static class ProcurementOptimizer
             if (subtotals[s] <= 0) continue;
             cost += subtotals[s];
             var terms = m.Suppliers[s];
-            extras += OrderCalculator.Shipping(terms, subtotals[s]) ?? 0;
+            extras += OrderCalculator.Shipping(terms, subtotals[s]) ?? m.UnknownShipping;
             if (terms.MinimumOrderAmount is { } min && subtotals[s] < min) extras += InfeasiblePenalty;
         }
 

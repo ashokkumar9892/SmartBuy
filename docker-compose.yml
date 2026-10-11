@@ -1,0 +1,43 @@
+# Local development stack: PostgreSQL + the SmartBuy API. Run the frontend with `npm run dev` in ./frontend.
+#   docker compose up --build
+# API: http://localhost:5080 (Swagger at /swagger)   Postgres: localhost:5432
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: smartbuy
+      POSTGRES_USER: smartbuy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartbuy_dev_only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - smartbuy-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartbuy -d smartbuy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__Provider: postgres
+      Database__ConnectionString: Host=db;Port=5432;Database=smartbuy;Username=smartbuy;Password=${POSTGRES_PASSWORD:-smartbuy_dev_only}
+      Jwt__Key: ${Jwt__Key:-dev-only-signing-key-change-me-0123456789abcdef}
+      Cors__AllowedOrigins__0: http://localhost:5173
+      App__FrontendUrl: http://localhost:5173
+      Seed__DemoData: "true"
+      Seed__AdminEmail: ${Seed__AdminEmail:-admin@smartbuy.local}
+      Seed__AdminPassword: ${Seed__AdminPassword:-ChangeMe!Admin2026}
+      Ai__Provider: ${Ai__Provider:-mock}
+      Ai__Claude__ApiKey: ${Ai__Claude__ApiKey:-}
+      Billing__AllowManualPlanChange: "true"
+
+volumes:
+  smartbuy-db:

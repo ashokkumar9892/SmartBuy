@@ -152,7 +152,7 @@ public static class PriceAlertRules
                 if (better is null || alert.LastTriggeredPrice == better.UnitPrice) return none;
                 var pct = reference.Value == 0 ? 0 : (reference.Value - better.UnitPrice) / reference.Value;
                 return new AlertEvaluation(true, $"Better offer: {productName}",
-                    $"{better.SupplierName} offers a comparable {productName} at ${better.UnitPrice:0.00} per {unit}, {pct:P0} below your reference price of ${reference:0.00}.", better.UnitPrice, inStockNow);
+                    $"{better.SupplierName} offers a comparable {productName} at ${better.UnitPrice:0.00} per {unit}, {pct * 100:0}% below your reference price of ${reference:0.00}.", better.UnitPrice, inStockNow);
             }
             default:
                 return none;

@@ -102,7 +102,8 @@ public static class UnitConverter
         var to = Resolve(toUnit);
         if (from is null || to is null || from.Dimension != to.Dimension) return null;
         if (from.Code == to.Code) return quantity;
-        return quantity * from.ToBase / to.ToBase;
+        // Factors such as 1/12 are not exact in decimal; rounding removes the resulting 3.9999999... noise.
+        return decimal.Round(quantity * from.ToBase / to.ToBase, 10);
     }
 }
 

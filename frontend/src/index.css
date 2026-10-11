@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --color-navy-50: #f2f5fa;
+  --color-navy-100: #e1e8f2;
+  --color-navy-200: #c2cfe3;
+  --color-navy-300: #93a8c9;
+  --color-navy-400: #5f7aa6;
+  --color-navy-500: #3d5a89;
+  --color-navy-600: #2b4470;
+  --color-navy-700: #1d3257;
+  --color-navy-800: #132544;
+  --color-navy-900: #0b1f3a;
+  --color-navy-950: #071428;
+  --color-accent-50: #eff6ff;
+  --color-accent-100: #dbeafe;
+  --color-accent-200: #bfdbfe;
+  --color-accent-400: #60a5fa;
+  --color-accent-500: #3b82f6;
+  --color-accent-600: #2563eb;
+  --color-accent-700: #1d4ed8;
+  --color-canvas: #f6f8fb;
+  --shadow-card: 0 1px 2px rgb(11 31 58 / 0.04), 0 4px 16px rgb(11 31 58 / 0.05);
+  --shadow-pop: 0 12px 40px rgb(11 31 58 / 0.16);
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { @apply bg-canvas text-slate-700; font-feature-settings: "cv11", "ss01"; }
+  h1, h2, h3, h4 { @apply text-navy-900; }
+  :focus-visible { outline: 2px solid var(--color-accent-500); outline-offset: 2px; }
+  button, [role="button"], a, summary { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+}
+
+@layer components {
+  .tabular { font-variant-numeric: tabular-nums; }
+  .skeleton { @apply animate-pulse rounded-md bg-slate-200/70; }
+}
