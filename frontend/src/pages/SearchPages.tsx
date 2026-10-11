@@ -128,7 +128,9 @@ function SearchBox({ initial = '', large, autoFocus }: { initial?: string; large
   // The catalog is small, so it is loaded once and matched in the browser: suggestions appear on the first keystroke.
   const { data: catalog } = useQuery({ queryKey: ['catalog'], queryFn: () => api.anonymous.get<CatalogEntry[]>('/api/public/catalog'), staleTime: Infinity })
   const matches = useMemo(() => matchCatalog(catalog ?? [], value), [catalog, value])
-  const noMatch = !!catalog && matches.length === 0 && value.trim().length >= 2
+  const { data: config } = usePublicConfig()
+  // With live stores connected any product can be searched, so a miss in the sample catalog means nothing.
+  const noMatch = !!catalog && !config?.liveSearchEnabled && matches.length === 0 && value.trim().length >= 2
   const showList = open && (matches.length > 0 || noMatch)
   useEffect(() => { setValue(initial); setOpen(false) }, [initial])
 
@@ -270,22 +272,23 @@ function shippingText(offer: SearchOffer) {
   return offer.freeShippingThreshold !== null ? `${money(offer.shippingFlatFee)} shipping, free over ${money(offer.freeShippingThreshold)}` : `${money(offer.shippingFlatFee)} shipping`
 }
 
-function OfferRow({ offer, unit, best }: { offer: SearchOffer; unit: string; best: boolean }) {
+function OfferRow({ offer, unit, best, listing }: { offer: SearchOffer; unit: string; best: boolean; listing: boolean }) {
   const out = offer.stockStatus === 'out_of_stock'
   const shipping = shippingText(offer)
   return (
     <li className={clsx('flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 sm:px-6', best && 'bg-emerald-50/60', out && 'opacity-60')}>
+      {offer.imageUrl && <img src={offer.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-16 shrink-0 rounded-lg border border-slate-200 bg-white object-contain" />}
       <div className="min-w-0 flex-1 basis-56">
         <p className="flex flex-wrap items-center gap-2 font-semibold text-navy-900">
           {offer.supplier}
-          {best && <Badge tone="green">Best price</Badge>}
+          {best && <Badge tone="green">{listing ? 'Lowest price' : 'Best price'}</Badge>}
           <DataStatusBadge status={offer.dataStatus} />
         </p>
         <p className="mt-0.5 truncate text-sm text-slate-600" title={offer.title}>{offer.title}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
-          <span>{packLabel(offer.packQuantity, offer.packUnit)}</span>
+          {listing ? <span>{[offer.condition, offer.seller && `seller ${offer.seller}`].filter(Boolean).join(' · ') || 'Listing'}</span> : <span>{packLabel(offer.packQuantity, offer.packUnit)}</span>}
           <span className={out ? 'text-red-600' : offer.stockStatus === 'in_stock' ? 'text-emerald-700' : ''}>{out ? 'Out of stock' : offer.stockStatus === 'in_stock' ? 'In stock' : 'Stock not reported'}</span>
-          <span className="inline-flex items-center gap-1"><Truck className="size-3" />{offer.deliveryDaysMin === null && offer.deliveryDaysMax === null ? 'Delivery time unknown' : deliveryLabel(offer.deliveryDaysMin, offer.deliveryDaysMax)}</span>
+          {!(listing && offer.deliveryDaysMin === null && offer.deliveryDaysMax === null) && <span className="inline-flex items-center gap-1"><Truck className="size-3" />{offer.deliveryDaysMin === null && offer.deliveryDaysMax === null ? 'Delivery time unknown' : deliveryLabel(offer.deliveryDaysMin, offer.deliveryDaysMax)}</span>}
           <span>{shipping ?? <Unknown>Shipping not published</Unknown>}</span>
         </p>
       </div>
@@ -312,7 +315,8 @@ function ProductCard({ product, query }: { product: SearchProduct; query: string
   const { data: config } = usePublicConfig()
   const queryClient = useQueryClient()
   const toast = useToast()
-  const canSave = !!session && !!config?.savedItemsEnabled
+  // Live marketplace listings are not catalog products, so they cannot be saved yet.
+  const canSave = !!session && !!config?.savedItemsEnabled && product.comparable !== false
   const saved = useQuery({ queryKey: ['saved'], queryFn: () => api.get<SavedProduct[]>('/api/saved'), enabled: canSave })
   const isSaved = saved.data?.some((s) => s.productId === product.productId) ?? false
   const toggle = useMutation({
@@ -349,7 +353,7 @@ function ProductCard({ product, query }: { product: SearchProduct; query: string
         )}
       </div>
       <ul className="divide-y divide-slate-100">
-        {product.offers.map((offer, index) => <OfferRow key={`${offer.supplier}-${index}`} offer={offer} unit={product.unit} best={index === bestIndex} />)}
+        {product.offers.map((offer, index) => <OfferRow key={`${offer.supplier}-${index}`} offer={offer} unit={product.unit} best={index === bestIndex} listing={product.comparable === false} />)}
       </ul>
     </section>
   )
@@ -394,6 +398,14 @@ export function SearchPage() {
             <h1 ref={heading} tabIndex={-1} className="text-xl font-semibold text-navy-900 focus:outline-none">
               {data.results.length} product{data.results.length === 1 ? '' : 's'} for "{data.query}"
             </h1>
+            {data.notice && <Notice tone="warning">{data.notice}</Notice>}
+            {data.liveSource && (
+              <Notice tone="success" title={`Live prices from ${data.liveSource}`}>
+                These are current listings returned by {data.liveSource}. They are separate listings that matched your search, so check each one is the item you want.
+                Price and shipping are confirmed on {data.liveSource} when you buy.
+                {data.results.some((p) => p.offers.some((o) => o.isAffiliate)) && ' Links are affiliate links: FindMyPrice may earn a commission at no cost to you.'}
+              </Notice>
+            )}
             {data.demoData && (
               <Notice tone="warning" title="Sample prices">
                 These prices are demo data, not live quotes. The Buy button opens the supplier's own site, where you'll see the real price and complete your purchase.

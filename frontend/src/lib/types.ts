@@ -53,6 +53,8 @@ export interface AuthResponse {
 export interface DemoBusiness { slug: string; name: string; industry: string; tagline: string; plan: string }
 
 export interface PublicConfig {
+  /** True when search answers from live store APIs, so any product can be searched, not just the sample catalog. */
+  liveSearchEnabled?: boolean
   demoEnabled: boolean
   selfSignupEnabled: boolean
   googleEnabled: boolean
@@ -82,12 +84,18 @@ export interface SearchOffer {
   dataStatus: DataStatus
   buyUrl: string | null
   buyNote: string | null
+  // Present on live marketplace listings only.
+  seller?: string | null
+  condition?: string | null
+  imageUrl?: string | null
+  isAffiliate?: boolean
 }
 
-export interface SearchProduct { productId: string; name: string; category: string; unit: string; isSafetyCritical: boolean; offers: SearchOffer[] }
+/** `comparable: false` means the offers are separate listings that matched the search, not one verified product. */
+export interface SearchProduct { productId: string; name: string; category: string; unit: string; isSafetyCritical: boolean; comparable?: boolean; offers: SearchOffer[] }
 
 export interface CatalogEntry { name: string; category: string }
-export interface SearchResponse { query: string; demoData: boolean; results: SearchProduct[]; suggestions: string[] }
+export interface SearchResponse { query: string; demoData: boolean; results: SearchProduct[]; suggestions: string[]; liveSource?: string | null; notice?: string | null }
 
 export interface SavedProduct { productId: string; name: string; query: string; bestPrice: number | null; bestSupplier: string | null; unit: string; savedAt: string }
 

@@ -9,8 +9,10 @@
 //   JWT_SECRET            signing secret for sessions (one is generated and stored if unset)
 //   GOOGLE_CLIENT_ID      enables Google sign-in
 //   FACEBOOK_APP_ID, FACEBOOK_APP_SECRET, FACEBOOK_GRAPH_VERSION   enable Facebook sign-in
+//   EBAY_CLIENT_ID + EBAY_CLIENT_SECRET, BESTBUY_API_KEY, WALMART_CONSUMER_ID + WALMART_PRIVATE_KEY
+//                         each switches search from the demo catalog to that store's live listings and prices
 import { getStore } from '@netlify/blobs'
-import { createHash, createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, createSign, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto'
 import demo from './demo-data.json'
 
 export const config = { path: '/api/*' }
@@ -283,6 +285,197 @@ function search(query: string) {
   return { query: clean, demoData: results.length > 0, results, suggestions: demo.suggestions }
 }
 
+// ---------- Live prices (official store APIs) ----------
+//
+// Real listings and prices come only from each store's official API, and a store is searched only when its keys are
+// set. Nothing is scraped. Stores are asked in parallel with a short timeout, so one slow store cannot hold up a search.
+//   EBAY_CLIENT_ID, EBAY_CLIENT_SECRET     eBay Buy Browse API (free eBay developer account)
+//   EBAY_MARKETPLACE                       marketplace to search, default EBAY_US
+//   EBAY_CAMPAIGN_ID                       optional eBay Partner Network campaign ID; links then are affiliate links and say so
+//   BESTBUY_API_KEY                        Best Buy Products API
+//   WALMART_CONSUMER_ID, WALMART_PRIVATE_KEY, WALMART_KEY_VERSION   Walmart affiliate product API (key version defaults to 1)
+
+const LIVE_TIMEOUT_MS = 4000
+const LIVE_CACHE_MS = 5 * 60_000
+const LIVE_PER_STORE = 12
+
+type LiveOffer = {
+  supplier: string; title: string; packQuantity: number; packUnit: string; price: number; unitPrice: number; stockStatus: string
+  deliveryDaysMin: null; deliveryDaysMax: null; shippingFlatFee: number | null; freeShippingThreshold: null; dataStatus: 'LIVE'
+  buyUrl: string; buyNote: string | null; seller: string | null; condition: string | null; imageUrl: string | null; isAffiliate: boolean
+}
+type LiveStore = { name: string; configured: () => boolean; search: (query: string) => Promise<LiveOffer[]> }
+
+/** Only HTTPS links on the store's own domain are ever handed to the browser. */
+function safeUrl(value: string | undefined, domain: string): string | null {
+  try {
+    const url = new URL(value ?? '')
+    return url.protocol === 'https:' && (url.hostname === domain || url.hostname.endsWith(`.${domain}`)) ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
+/** Builds one offer, or null when the store's answer lacks a usable title, price or link. */
+function liveOffer(supplier: string, fields: { title?: string; price: unknown; buyUrl: string | null; imageUrl?: string | null; shipping?: number | null; inStock?: boolean; seller?: string | null; condition?: string | null; affiliateNote?: string | null }): LiveOffer | null {
+  const price = Number(fields.price)
+  if (!fields.title || !Number.isFinite(price) || price <= 0 || !fields.buyUrl) return null
+  const shipping = fields.shipping
+  return {
+    supplier,
+    // Listing titles are written by sellers: shown as plain text only, never interpreted.
+    title: fields.title.replace(/[\u0000-\u001f]/g, ' ').slice(0, 200),
+    packQuantity: 1, packUnit: 'each', price, unitPrice: price, stockStatus: fields.inStock === false ? 'out_of_stock' : 'in_stock',
+    deliveryDaysMin: null, deliveryDaysMax: null,
+    shippingFlatFee: typeof shipping === 'number' && Number.isFinite(shipping) && shipping >= 0 ? shipping : null, freeShippingThreshold: null,
+    dataStatus: 'LIVE', buyUrl: fields.buyUrl, buyNote: fields.affiliateNote ?? null,
+    seller: fields.seller ?? null, condition: fields.condition ?? null, imageUrl: fields.imageUrl ?? null, isAffiliate: !!fields.affiliateNote,
+  }
+}
+
+async function storeJson<T>(store: string, url: string, headers: Record<string, string> = {}): Promise<T> {
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(LIVE_TIMEOUT_MS) })
+  if (!response.ok) throw new Error(`${store} search failed with HTTP ${response.status}`)
+  return (await response.json()) as T
+}
+
+let ebayToken: { value: string; expires: number } | null = null
+
+async function ebayAccessToken(): Promise<string> {
+  if (ebayToken && ebayToken.expires > Date.now() + 60_000) return ebayToken.value
+  const basic = Buffer.from(`${Netlify.env.get('EBAY_CLIENT_ID')}:${Netlify.env.get('EBAY_CLIENT_SECRET')}`).toString('base64')
+  const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=client_credentials&scope=' + encodeURIComponent('https://api.ebay.com/oauth/api_scope'),
+    signal: AbortSignal.timeout(LIVE_TIMEOUT_MS),
+  })
+  if (!response.ok) throw new Error(`eBay token request failed with HTTP ${response.status}`)
+  const body = (await response.json()) as { access_token: string; expires_in: number }
+  ebayToken = { value: body.access_token, expires: Date.now() + body.expires_in * 1000 }
+  return ebayToken.value
+}
+
+type EbayItem = {
+  title?: string
+  price?: { value?: string; currency?: string }
+  itemWebUrl?: string
+  itemAffiliateWebUrl?: string
+  condition?: string
+  image?: { imageUrl?: string }
+  seller?: { username?: string }
+  shippingOptions?: { shippingCost?: { value?: string } }[]
+}
+
+const ebay: LiveStore = {
+  name: 'eBay',
+  configured: () => !!Netlify.env.get('EBAY_CLIENT_ID') && !!Netlify.env.get('EBAY_CLIENT_SECRET'),
+  async search(query) {
+    const campaign = Netlify.env.get('EBAY_CAMPAIGN_ID')
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${await ebayAccessToken()}`,
+      'X-EBAY-C-MARKETPLACE-ID': Netlify.env.get('EBAY_MARKETPLACE') ?? 'EBAY_US',
+    }
+    if (campaign) headers['X-EBAY-C-ENDUSERCTX'] = `affiliateCampaignId=${campaign}`
+    const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(query)}&limit=${LIVE_PER_STORE}&filter=${encodeURIComponent('buyingOptions:{FIXED_PRICE},conditions:{NEW}')}`
+    const body = await storeJson<{ itemSummaries?: EbayItem[] }>('eBay', url, headers)
+    return (body.itemSummaries ?? []).flatMap((item) => {
+      if (item.price?.currency !== 'USD') return []
+      const affiliate = campaign ? safeUrl(item.itemAffiliateWebUrl, 'ebay.com') : null
+      const shipping = item.shippingOptions?.[0]?.shippingCost?.value
+      return liveOffer('eBay', {
+        title: item.title, price: item.price.value, buyUrl: affiliate ?? safeUrl(item.itemWebUrl, 'ebay.com'),
+        imageUrl: safeUrl(item.image?.imageUrl, 'ebayimg.com'), shipping: shipping === undefined ? null : Number(shipping),
+        seller: item.seller?.username, condition: item.condition,
+        affiliateNote: affiliate ? 'Affiliate link: FindMyPrice may earn a commission from eBay at no cost to you.' : null,
+      }) ?? []
+    })
+  },
+}
+
+type BestBuyProduct = { name?: string; salePrice?: number; url?: string; image?: string; onlineAvailability?: boolean; freeShipping?: boolean; shippingCost?: number | string }
+
+const bestBuy: LiveStore = {
+  name: 'Best Buy',
+  configured: () => !!Netlify.env.get('BESTBUY_API_KEY'),
+  async search(query) {
+    // Best Buy matches products that contain every search term.
+    const terms = (query.toLowerCase().match(/[a-z0-9]+/g) ?? []).slice(0, 6)
+    if (terms.length === 0) return []
+    const url = `https://api.bestbuy.com/v1/products(${terms.map((t) => `search=${t}`).join('&')})?format=json&pageSize=${LIVE_PER_STORE}&sort=bestSellingRank.asc`
+      + `&show=name,salePrice,url,image,onlineAvailability,freeShipping,shippingCost&apiKey=${encodeURIComponent(Netlify.env.get('BESTBUY_API_KEY')!)}`
+    const body = await storeJson<{ products?: BestBuyProduct[] }>('Best Buy', url)
+    return (body.products ?? []).flatMap((item) => liveOffer('Best Buy', {
+      title: item.name, price: item.salePrice, buyUrl: safeUrl(item.url, 'bestbuy.com'), imageUrl: safeUrl(item.image, 'bbystatic.com'),
+      shipping: item.freeShipping ? 0 : typeof item.shippingCost === 'number' ? item.shippingCost : null, inStock: item.onlineAvailability !== false, condition: 'New',
+    }) ?? [])
+  },
+}
+
+type WalmartItem = { itemId?: number; name?: string; salePrice?: number; mediumImage?: string; thumbnailImage?: string; stock?: string }
+
+const walmart: LiveStore = {
+  name: 'Walmart',
+  configured: () => !!Netlify.env.get('WALMART_CONSUMER_ID') && !!Netlify.env.get('WALMART_PRIVATE_KEY'),
+  async search(query) {
+    const consumerId = Netlify.env.get('WALMART_CONSUMER_ID')!
+    const keyVersion = Netlify.env.get('WALMART_KEY_VERSION') ?? '1'
+    const timestamp = String(Date.now())
+    // Walmart authenticates each request with an RSA signature over these three values. The key may be pasted as a
+    // full PEM (with real or escaped line breaks) or as the bare base64 body.
+    let pem = Netlify.env.get('WALMART_PRIVATE_KEY')!.replace(/\\n/g, '\n').trim()
+    if (!pem.includes('BEGIN')) pem = `-----BEGIN PRIVATE KEY-----\n${pem}\n-----END PRIVATE KEY-----`
+    const signature = createSign('RSA-SHA256').update(`${consumerId}\n${timestamp}\n${keyVersion}\n`).sign(pem, 'base64')
+    const url = `https://developer.api.walmart.com/api-proxy/service/affil/product/v2/search?query=${encodeURIComponent(query)}&numItems=${LIVE_PER_STORE}`
+    const body = await storeJson<{ items?: WalmartItem[] }>('Walmart', url, {
+      'WM_CONSUMER.ID': consumerId, 'WM_CONSUMER.INTIMESTAMP': timestamp, 'WM_SEC.KEY_VERSION': keyVersion, 'WM_SEC.AUTH_SIGNATURE': signature, Accept: 'application/json',
+    })
+    return (body.items ?? []).flatMap((item) => liveOffer('Walmart', {
+      title: item.name, price: item.salePrice, buyUrl: item.itemId ? `https://www.walmart.com/ip/${encodeURIComponent(item.itemId)}` : null,
+      imageUrl: safeUrl(item.mediumImage ?? item.thumbnailImage, 'walmartimages.com'), inStock: item.stock !== 'Not available', condition: 'New',
+    }) ?? [])
+  },
+}
+
+const liveStores = [ebay, bestBuy, walmart]
+const liveEnabled = () => liveStores.some((store) => store.configured())
+const listNames = (names: string[]) => (names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
+
+// Repeat searches are answered from memory while this function instance stays warm.
+const liveCache = new Map<string, { expires: number; value: unknown }>()
+
+/** Live results when a store is configured and answers; otherwise the labelled demo catalog. */
+async function searchAny(query: string) {
+  const fallback = search(query)
+  const stores = liveStores.filter((store) => store.configured())
+  if (stores.length === 0 || fallback.query.length < 2) return { ...fallback, liveSource: null, notice: null }
+  const key = fallback.query.toLowerCase()
+  const cached = liveCache.get(key)
+  if (cached && cached.expires > Date.now()) return cached.value
+
+  const settled = await Promise.allSettled(stores.map((store) => store.search(fallback.query)))
+  const answered = stores.filter((_, index) => settled[index].status === 'fulfilled')
+  const failed = stores.filter((_, index) => settled[index].status === 'rejected')
+  settled.forEach((result) => result.status === 'rejected' && console.error(result.reason))
+  if (answered.length === 0) return { ...fallback, liveSource: null, notice: 'Live prices could not be loaded just now, so sample prices are shown instead.' }
+
+  const offers = settled
+    .flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
+    .sort((a, b) => Number(a.stockStatus === 'out_of_stock') - Number(b.stockStatus === 'out_of_stock') || a.price + (a.shippingFlatFee ?? 0) - (b.price + (b.shippingFlatFee ?? 0)))
+  const source = listNames(answered.map((store) => store.name))
+  const results = offers.length === 0 ? [] : [{ productId: `live:${key}`, name: `Live listings for "${fallback.query}"`, category: `Live prices from ${source}`, unit: 'each', isSafetyCritical: false, comparable: false, offers }]
+  const value = {
+    query: fallback.query, demoData: false, results, suggestions: fallback.suggestions, liveSource: source,
+    notice: failed.length > 0 ? `${listNames(failed.map((store) => store.name))} could not be reached just now, so ${failed.length === 1 ? 'its' : 'their'} prices are missing.` : null,
+  }
+  // Only complete answers are remembered, so a store that failed is retried on the next search.
+  if (failed.length === 0) {
+    if (liveCache.size >= 300) liveCache.clear()
+    liveCache.set(key, { expires: Date.now() + LIVE_CACHE_MS, value })
+  }
+  return value
+}
+
 // ---------- Saved products ----------
 
 type Saved = { productId: string; name: string; query: string; bestPrice: number | null; bestSupplier: string | null; unit: string; savedAt: string }
@@ -316,7 +509,7 @@ export default async (request: Request) => {
   const path = url.pathname.replace(/\/+$/, '')
   const body = async () => (await request.json().catch(() => ({}))) as Record<string, unknown>
   try {
-    if (request.method === 'GET' && path === '/api/public/search') return json(search(url.searchParams.get('q') ?? ''))
+    if (request.method === 'GET' && path === '/api/public/search') return json(await searchAny(url.searchParams.get('q') ?? ''))
     if (request.method === 'GET' && path === '/api/public/catalog') return json(demo.products.map((p) => ({ name: p.name, category: p.category })).sort((a, b) => a.name.localeCompare(b.name)))
     if (request.method === 'GET' && path === '/api/auth/config') {
       const facebookAppId = Netlify.env.get('FACEBOOK_APP_ID') && Netlify.env.get('FACEBOOK_APP_SECRET') ? Netlify.env.get('FACEBOOK_APP_ID') : null
@@ -324,7 +517,7 @@ export default async (request: Request) => {
         demoEnabled: false, selfSignupEnabled: true,
         googleEnabled: !!Netlify.env.get('GOOGLE_CLIENT_ID'), googleClientId: Netlify.env.get('GOOGLE_CLIENT_ID') ?? null,
         facebookEnabled: !!facebookAppId, facebookAppId: facebookAppId ?? null, facebookGraphVersion: Netlify.env.get('FACEBOOK_GRAPH_VERSION') ?? 'v21.0',
-        workspaceEnabled: false, savedItemsEnabled: true, demoBusinesses: [], plans: [],
+        workspaceEnabled: false, savedItemsEnabled: true, liveSearchEnabled: liveEnabled(), demoBusinesses: [], plans: [],
       })
     }
     if (request.method === 'POST') {

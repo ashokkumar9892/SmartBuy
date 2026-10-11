@@ -43,7 +43,7 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     # connect-src allows any HTTPS origin because the API host is deployment-specific; tighten it to your API origin.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://accounts.google.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https://www.facebook.com; font-src 'self'; connect-src 'self' https:; frame-src https://accounts.google.com https://www.facebook.com https://web.facebook.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://accounts.google.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https://www.facebook.com https://i.ebayimg.com https://*.bbystatic.com https://*.walmartimages.com; font-src 'self'; connect-src 'self' https:; frame-src https://accounts.google.com https://www.facebook.com https://web.facebook.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
 [[headers]]
   for = "/assets/*"
