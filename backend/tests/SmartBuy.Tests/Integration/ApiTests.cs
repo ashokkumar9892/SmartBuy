@@ -762,6 +762,32 @@ public class DemoAndPlatformTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task Anyone_can_search_a_product_and_get_supplier_prices_with_safe_buy_links()
+    {
+        var client = factory.CreateClient();
+        var result = await (await client.GetAsync("/api/public/search?q=copper%20pipe")).ReadJsonAsync();
+        var products = result["results"]!.AsArray();
+        Assert.NotEmpty(products);
+        Assert.True(result["demoData"]!.GetValue<bool>());
+        foreach (var product in products)
+        {
+            var offers = product!["offers"]!.AsArray();
+            Assert.NotEmpty(offers);
+            Assert.All(offers, o => Assert.Equal("DEMO", o!["dataStatus"]!.GetValue<string>()));
+            // Every offer can be clicked through, and only ever to the supplier's own HTTPS site.
+            Assert.All(offers, o => Assert.StartsWith("https://www.", o!["buyUrl"]!.GetValue<string>()));
+            Assert.DoesNotContain(offers, o => o!["supplier"]!.GetValue<string>() == "eBay");
+            var available = offers.Where(o => o!["stockStatus"]!.GetValue<string>() != "out_of_stock").Select(o => o!["unitPrice"]!.GetValue<decimal>()).ToList();
+            Assert.Equal(available.OrderBy(p => p), available);
+        }
+
+        var none = await (await client.GetAsync("/api/public/search?q=quantum%20flux%20capacitor")).ReadJsonAsync();
+        Assert.Empty(none["results"]!.AsArray());
+        Assert.NotEmpty(none["suggestions"]!.AsArray());
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/public/search?q=")).StatusCode);
+    }
+
+    [Fact]
     public async Task Health_and_openapi_endpoints_respond()
     {
         var client = factory.CreateClient();

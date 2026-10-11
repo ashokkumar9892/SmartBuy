@@ -15,6 +15,7 @@ import { ReportsPage } from './pages/app/ReportsPage'
 import { SuppliersPage } from './pages/app/SuppliersPage'
 import { DemoPage, LoginPage, RegisterPage } from './pages/AuthPages'
 import { LandingPage } from './pages/LandingPage'
+import { HomePage, SavedPage, SearchPage } from './pages/SearchPages'
 
 // The admin panel is large and used by very few people, so it is loaded on demand.
 const AdminPage = lazy(() => import('./pages/admin/AdminPage').then((m) => ({ default: m.AdminPage })))
@@ -43,7 +44,10 @@ export default function App() {
     <>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/saved" element={<SavedPage />} />
+        <Route path="/business" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/demo" element={<DemoPage />} />

@@ -17,6 +17,15 @@ using SmartBuy.Infrastructure.Persistence;
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
+// One-shot tool: `--export-demo-data <file>` writes the demo catalog for the Netlify-hosted search function and exits.
+var exportIndex = Array.IndexOf(args, "--export-demo-data");
+if (exportIndex >= 0 && exportIndex + 1 < args.Length)
+{
+    await SmartBuy.Infrastructure.Services.DemoDataExport.WriteAsync(args[exportIndex + 1]);
+    Console.WriteLine($"Demo data written to {args[exportIndex + 1]}");
+    return 0;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 

@@ -14,11 +14,11 @@ function AuthShell({ title, subtitle, children, footer }: { title: string; subti
         <div className="pointer-events-none absolute -right-32 -top-32 size-96 rounded-full bg-accent-600/20 blur-3xl" />
         <Link to="/"><Logo light /></Link>
         <div className="relative">
-          <p className="text-3xl font-semibold leading-tight tracking-tight">One List. Every Supplier.<br />The Smarter Way to Buy.</p>
+          <p className="text-3xl font-semibold leading-tight tracking-tight">Find the best price<br />before you buy.</p>
           <ul className="mt-8 space-y-3 text-navy-200">
-            <li>Compare the same material across suppliers with pack sizes normalized.</li>
-            <li>See the lowest total cost including shipping, with unknowns clearly marked.</li>
-            <li>Turn the plan into purchase orders your team can approve.</li>
+            <li>Search a product and see every supplier's price side by side.</li>
+            <li>Pack sizes are worked out per unit, so offers are comparable.</li>
+            <li>Go straight to the supplier you choose and buy there.</li>
           </ul>
         </div>
         <p className="relative text-xs text-navy-400">Preview release. Supplier prices come from demo data unless a live integration is connected.</p>
@@ -181,6 +181,7 @@ function Divider() {
 
 export function LoginPage() {
   const { session, login } = useAuth()
+  const { data: config } = usePublicConfig()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -189,7 +190,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false)
   const from = (location.state as { from?: string } | null)?.from
   // Only ever return to a path inside this app.
-  const destination = from && from.startsWith('/') && !from.startsWith('//') ? from : '/app'
+  const destination = from && from.startsWith('/') && !from.startsWith('//') ? from : config?.workspaceEnabled ? '/app' : '/'
 
   if (session) return <Navigate to={destination} replace />
 
@@ -214,14 +215,18 @@ export function LoginPage() {
       footer={
         <>
           New to FindMyPrice? <Link to="/register" className="font-medium text-accent-600 hover:underline">Create a free account</Link>
-          <span className="mx-2 text-slate-300">|</span>
-          <Link to="/demo" className="font-medium text-accent-600 hover:underline">Try the demo</Link>
+          {config?.demoEnabled && (
+            <>
+              <span className="mx-2 text-slate-300">|</span>
+              <Link to="/demo" className="font-medium text-accent-600 hover:underline">Try the business demo</Link>
+            </>
+          )}
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4" noValidate>
         {error && <Notice tone="error">{error}</Notice>}
-        <Input label="Work email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <Input label="Password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy} disabled={!email || !password}>
           Sign in
@@ -243,7 +248,7 @@ export function RegisterPage() {
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
   // A brand-new account goes straight to creating its first project; an already signed-in visitor goes to the dashboard.
-  if (session) return <Navigate to={justRegistered.current ? '/app/projects/new' : '/app'} replace />
+  if (session) return <Navigate to={!config?.workspaceEnabled ? '/' : justRegistered.current ? '/app/projects/new' : '/app'} replace />
 
   const passwordProblem = form.password.length === 0 ? null : form.password.length < 10 ? 'Use at least 10 characters.' : !/[a-z]/i.test(form.password) || !/[^a-z]/i.test(form.password) ? 'Mix letters with numbers or symbols.' : null
 
@@ -265,7 +270,7 @@ export function RegisterPage() {
   return (
     <AuthShell
       title="Create your FindMyPrice account"
-      subtitle="Start on the Free plan. No card required."
+      subtitle="Free. No card required."
       footer={<>Already have an account? <Link to="/login" className="font-medium text-accent-600 hover:underline">Sign in</Link></>}
     >
       {config && !config.selfSignupEnabled ? (
@@ -274,12 +279,12 @@ export function RegisterPage() {
         <form onSubmit={submit} className="space-y-4" noValidate>
           {error && <Notice tone="error">{error}</Notice>}
           <Input label="Your name" autoComplete="name" required value={form.fullName} onChange={set('fullName')} />
-          <Input label="Work email" type="email" autoComplete="email" required value={form.email} onChange={set('email')} />
+          <Input label="Email" type="email" autoComplete="email" required value={form.email} onChange={set('email')} />
           <Input label="Password" type="password" autoComplete="new-password" required value={form.password} onChange={set('password')} error={passwordProblem} hint="At least 10 characters, mixing letters with numbers or symbols." />
           <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy} disabled={!form.fullName || !form.email || !form.password || !!passwordProblem}>
             Create account
           </Button>
-          <p className="text-xs leading-relaxed text-slate-500">You start on the Free plan with your own workspace. Add your business name, industry and team later under Organization, if you need them.</p>
+          <p className="text-xs leading-relaxed text-slate-500">You can search and compare prices without an account. An account lets you save products to come back to.</p>
         </form>
       )}
       <Divider />

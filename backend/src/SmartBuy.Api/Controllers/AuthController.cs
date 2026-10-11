@@ -44,7 +44,7 @@ public sealed record PermissionsDto(bool CanEditLists, bool CanManagePurchasing,
 public sealed record SessionDto(UserDto User, OrganizationSummary Organization, IReadOnlyList<OrganizationSummary> Organizations, PlanInfo Plan, PermissionsDto Permissions, string AiProvider);
 public sealed record AuthResponse(string AccessToken, DateTime ExpiresAt, string RefreshToken, SessionDto Session);
 public sealed record DemoBusinessDto(string Slug, string Name, string Industry, string Tagline, string Plan);
-public sealed record PublicConfig(bool DemoEnabled, bool SelfSignupEnabled, bool GoogleEnabled, string? GoogleClientId, bool FacebookEnabled, string? FacebookAppId, string FacebookGraphVersion, IReadOnlyList<DemoBusinessDto> DemoBusinesses, IReadOnlyList<PlanInfo> Plans);
+public sealed record PublicConfig(bool DemoEnabled, bool SelfSignupEnabled, bool GoogleEnabled, string? GoogleClientId, bool FacebookEnabled, string? FacebookAppId, string FacebookGraphVersion, bool WorkspaceEnabled, bool SavedItemsEnabled, IReadOnlyList<DemoBusinessDto> DemoBusinesses, IReadOnlyList<PlanInfo> Plans);
 
 [ApiController]
 [Route("api/auth")]
@@ -81,6 +81,8 @@ public sealed partial class AuthController(
             facebook.Value.IsConfigured,
             facebook.Value.IsConfigured ? facebook.Value.AppId : null,
             facebook.Value.GraphVersion,
+            WorkspaceEnabled: true,
+            SavedItemsEnabled: false,
             DataSeeder.DemoBusinesses.Where(b => demoSlugs.Contains(b.Slug)).Select(b => new DemoBusinessDto(b.Slug, b.Name, b.Industry.ToString(), b.Tagline, b.PlanCode)).ToList(),
             plans.Select(PlanInfo.From).ToList());
     }

@@ -1,5 +1,10 @@
 # Netlify build for the FindMyPrice frontend (a static Vite single-page app).
-# The API is a separate ASP.NET Core service. Tell the frontend where it is in ONE of two ways:
+#
+# Out of the box the site is self-contained: frontend/netlify/functions/api.mts serves /api/* (product search,
+# accounts, saved products) and stores its data in Netlify Blobs. Nothing else needs to be hosted.
+#
+# The business workspace (projects, purchase orders, admin) needs the full ASP.NET Core API. Once that is hosted,
+# point the site at it in ONE of two ways:
 #
 #   A) Set the environment variable VITE_API_BASE_URL in Netlify (Site configuration > Environment variables)
 #      to the API's public HTTPS origin, e.g. https://api.example.com, and add this site's URL to the API's

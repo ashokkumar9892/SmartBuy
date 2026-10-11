@@ -13,15 +13,38 @@ async function register(page: Page) {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   await page.goto('/register')
   await page.getByLabel('Your name').fill('Erin Tester')
-  await page.getByLabel('Work email').fill('e2e-' + id + '@example.test')
+  await page.getByLabel('Email').fill('e2e-' + id + '@example.test')
   await page.getByLabel('Password').fill('Sup3r-secret-pass')
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page).toHaveURL(/\/app\/projects\/new/)
 }
 
 test.describe('public site', () => {
-  test('landing page presents the product and an interactive sample comparison', async ({ page }) => {
+  test('a visitor searches a product, compares supplier prices and is sent to the supplier to buy', async ({ page }) => {
     await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Find the best price before you buy')
+    await page.getByRole('searchbox', { name: 'Search for a product' }).fill('copper pipe')
+    await page.getByRole('button', { name: 'Find prices' }).click()
+    await expect(page).toHaveURL(/\/search\?q=copper/)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('for "copper pipe"')
+    await expect(page.getByText('Sample prices')).toBeVisible()
+    await expect(page.getByText('Best price').first()).toBeVisible()
+    await expect(page.getByText('DEMO', { exact: true }).first()).toBeVisible()
+
+    // Buying happens on the supplier's own site, in a new tab, with no referrer leak.
+    const buy = page.getByRole('link', { name: /^Buy at / }).first()
+    await expect(buy).toHaveAttribute('href', /^https:\/\/www\.(homedepot|lowes|amazon|walmart|bestbuy)\.com\//)
+    await expect(buy).toHaveAttribute('target', '_blank')
+    await expect(buy).toHaveAttribute('rel', /noopener/)
+    await shot(page, '00-search-results')
+
+    await page.getByRole('searchbox', { name: 'Search for a product' }).fill('quantum flux capacitor')
+    await page.getByRole('button', { name: 'Find prices' }).click()
+    await expect(page.getByText(/No prices found for/)).toBeVisible()
+  })
+
+  test('business landing page presents the product and an interactive sample comparison', async ({ page }) => {
+    await page.goto('/business')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Buy Smarter. Spend Less.')
     await expect(page.getByText('Compare materials across suppliers, optimize purchases, and reduce procurement costs using AI.')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Start Free' }).first()).toBeVisible()
@@ -46,7 +69,7 @@ test.describe('public site', () => {
   test('the app requires sign-in and rejects wrong credentials', async ({ page }) => {
     await page.goto('/app/projects')
     await expect(page).toHaveURL(/\/login/)
-    await page.getByLabel('Work email').fill('nobody@example.test')
+    await page.getByLabel('Email').fill('nobody@example.test')
     await page.getByLabel('Password').fill('wrong-password-1')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('alert')).toContainText('The email or password is incorrect.')
@@ -55,7 +78,7 @@ test.describe('public site', () => {
   })
 
   test('Try Demo opens a sample business without sign-up', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/business')
     await page.getByRole('button', { name: 'Try Demo' }).click()
     await page.getByRole('button', { name: /ABC Plumbing/ }).click()
     await expect(page).toHaveURL(/\/app$/)
@@ -220,7 +243,7 @@ test.describe('workspace and administration', () => {
 
   test('platform administrator can use the admin panel', async ({ page }) => {
     await page.goto('/login')
-    await page.getByLabel('Work email').fill(ADMIN.email)
+    await page.getByLabel('Email').fill(ADMIN.email)
     await page.getByLabel('Password').fill(ADMIN.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/app$/)

@@ -121,6 +121,22 @@ All settings are environment variables; see [.env.example](.env.example). The on
 
 Frontend build-time settings are in [frontend/.env.example](frontend/.env.example).
 
+## Two ways the site runs
+
+**Public price search (home page).** Anyone can type a product, see each supplier's price, and follow a
+"Buy at supplier" link to that supplier's own site. No account is needed; an account adds saved products.
+
+- **On Netlify alone:** `frontend/netlify/functions/api.mts` serves `/api/*` (search, email/Google/Facebook sign-in,
+  saved products) and keeps its data in Netlify Blobs. Nothing else has to be hosted. Search reads
+  `frontend/netlify/functions/demo-data.json`; regenerate it with
+  `dotnet run --project backend/src/SmartBuy.Api -- --export-demo-data frontend/netlify/functions/demo-data.json`.
+  Optional Netlify environment variables: `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`.
+- **With the full API:** the same pages call `GET /api/public/search`, which uses the real catalog, matching engine and
+  supplier adapters.
+
+**Business workspace (`/business`, `/app`, `/admin`).** Projects, list review, optimization, cart, purchase orders,
+alerts and administration. These need the full ASP.NET Core API and are hidden on a Netlify-only site.
+
 ## Deployment
 
 Frontend on Netlify, API on Windows/IIS or any server that runs .NET, PostgreSQL for data.

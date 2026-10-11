@@ -4,7 +4,7 @@ import { BarChart3, Bell, Building2, ChevronDown, ClipboardList, CreditCard, Fil
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { useAuth } from '../lib/auth'
+import { useAuth, usePublicConfig } from '../lib/auth'
 import { timeAgo } from '../lib/format'
 import { ROLE_LABELS, type Notification } from '../lib/types'
 import { Badge, Button, ErrorState, Spinner } from './ui'
@@ -198,6 +198,7 @@ function SideNav({ onNavigate }: { onNavigate?: () => void }) {
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading, loadError, retry } = useAuth()
+  const { data: config } = usePublicConfig()
   const location = useLocation()
   if (loading) return <Spinner label="Loading your workspace" />
   // A failed request is not the same as being signed out: keep the user here and let them retry.
@@ -208,6 +209,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
       </div>
     )
   if (!session) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
+  // The business workspace needs the full API. On a site that only has search and accounts, send people home.
+  if (config && !config.workspaceEnabled) return <Navigate to="/" replace />
   return <>{children}</>
 }
 

@@ -60,9 +60,35 @@ export interface PublicConfig {
   facebookEnabled: boolean
   facebookAppId: string | null
   facebookGraphVersion: string
+  /** The business workspace (projects, purchase orders, admin) needs the full API; the Netlify-only site has none. */
+  workspaceEnabled: boolean
+  savedItemsEnabled: boolean
   demoBusinesses: DemoBusiness[]
   plans: Plan[]
 }
+
+export interface SearchOffer {
+  supplier: string
+  title: string
+  packQuantity: number
+  packUnit: string
+  price: number
+  unitPrice: number | null
+  stockStatus: 'in_stock' | 'out_of_stock' | 'unknown'
+  deliveryDaysMin: number | null
+  deliveryDaysMax: number | null
+  shippingFlatFee: number | null
+  freeShippingThreshold: number | null
+  dataStatus: DataStatus
+  buyUrl: string | null
+  buyNote: string | null
+}
+
+export interface SearchProduct { productId: string; name: string; category: string; unit: string; isSafetyCritical: boolean; offers: SearchOffer[] }
+
+export interface SearchResponse { query: string; demoData: boolean; results: SearchProduct[]; suggestions: string[] }
+
+export interface SavedProduct { productId: string; name: string; query: string; bestPrice: number | null; bestSupplier: string | null; unit: string; savedAt: string }
 
 export interface ListItem {
   id: string

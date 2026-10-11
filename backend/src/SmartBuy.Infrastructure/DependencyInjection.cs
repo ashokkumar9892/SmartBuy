@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<PlanExplanationService>();
         services.AddScoped<PriceAlertJob>();
         services.AddScoped<BillingService>();
+        services.AddScoped<PublicSearchService>();
         services.AddScoped<DataSeeder>();
 
         services.AddHostedService<PriceAlertScheduler>();
