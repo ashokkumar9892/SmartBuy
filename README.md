@@ -131,6 +131,7 @@ Frontend build-time settings are in [frontend/.env.example](frontend/.env.exampl
   `frontend/netlify/functions/demo-data.json`; regenerate it with
   `dotnet run --project backend/src/SmartBuy.Api -- --export-demo-data frontend/netlify/functions/demo-data.json`.
   Optional Netlify environment variables: `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`.
+  Live store prices (eBay, Best Buy, Walmart) are switched on with the keys described in `docs/LIVE_PRICES.md`.
 - **With the full API:** the same pages call `GET /api/public/search`, which uses the real catalog, matching engine and
   supplier adapters.
 

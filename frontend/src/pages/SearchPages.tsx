@@ -390,7 +390,9 @@ export function SearchPage() {
           <EmptyState
             icon={<Search className="size-5" />}
             title={`No prices found for "${data.query}"`}
-            description="FindMyPrice is in preview with a limited sample catalog of building, maintenance and business supplies. Try one of these."
+            description={data.liveSource
+              ? `${data.liveSource} returned no listings for this search. Check the spelling or try fewer words.`
+              : 'FindMyPrice is in preview with a limited sample catalog of building, maintenance and business supplies. Try one of these.'}
             action={<Suggestions items={data.suggestions.slice(0, 8)} />}
           />
         ) : (

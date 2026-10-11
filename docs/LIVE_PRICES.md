@@ -9,10 +9,10 @@ So "real prices" means connecting at least one supplier. Each supplier decides w
 | Supplier | How you get access | Self-serve? | Built into the site? |
 |---|---|---|---|
 | **eBay** | Free developer account at developer.ebay.com, then production keys | Yes | **Yes** (steps below) |
-| Best Buy | Developer API key from developer.bestbuy.com (they review requests) | Request | Not yet |
+| **Best Buy** | Developer API key from developer.bestbuy.com (they review requests) | Request | **Yes** (steps below) |
 | Amazon | Amazon Associates account, then product-advertising API access (needs qualifying sales) | Approval | Not yet |
-| Walmart | Affiliate programme approval, then its product API | Approval | Not yet |
-| Home Depot, Lowe's | No public price service; needs a partner or affiliate data agreement | No | Not yet |
+| **Walmart** | Affiliate programme approval, then its product API at walmart.io | Approval | **Yes** (steps below) |
+| Target, Home Depot, Lowe's | No public price service; needs a partner or affiliate data agreement | No | Not yet |
 
 Check each provider's own site for its current terms before relying on this table.
 
@@ -37,6 +37,24 @@ for that search.
 What customers see is a list of separate listings that matched their words, cheapest first. They are not verified to
 be the identical item, so the page says to check each one.
 
+## Turn on live Best Buy prices
+
+1. Request an API key at <https://developer.bestbuy.com/>. Best Buy reviews each request.
+2. In Netlify, add the environment variable `BESTBUY_API_KEY` and redeploy.
+
+## Turn on live Walmart prices
+
+1. Get approved for Walmart's affiliate programme, then create an application at <https://walmart.io/>. You generate an
+   RSA key pair, upload the public key, and Walmart gives you a **Consumer ID**.
+2. In Netlify, add `WALMART_CONSUMER_ID` and `WALMART_PRIVATE_KEY` (the private key, as the full PEM text or just its
+   base64 body), plus `WALMART_KEY_VERSION` if it is not `1`. Redeploy.
+
+## Several stores at once
+
+Every store with keys is searched at the same time, each with a 4-second limit, and the listings are merged into one
+list, cheapest first. A store that is slow or down is skipped for that search and the page says which one is missing.
+Repeat searches are answered from a 5-minute cache.
+
 ### Earning commission (optional)
 
 Join the eBay Partner Network, create a campaign, and add `EBAY_CAMPAIGN_ID` in Netlify. Links then become affiliate
@@ -44,6 +62,7 @@ links and the results page says so.
 
 ## Status
 
-The eBay connection is written to eBay's published Browse API but **has not been run against eBay**, because that
-needs your keys. Expect to test it once after adding them. It is only in the Netlify site's own API
+The eBay, Best Buy and Walmart connections are written to each store's published API and pass tests against simulated
+responses, but **have not been run against the real stores**, because that needs your keys. Expect to test each one
+once after adding its keys. They are only in the Netlify site's own API
 (`frontend/netlify/functions/api.mts`); the full ASP.NET Core API still uses demo adapters.
