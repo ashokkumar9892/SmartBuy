@@ -90,7 +90,7 @@ public sealed class PurchasingController(
     [HttpDelete("projects/{projectId:guid}/cart"), RequireRole(OrgRole.Employee)]
     public Task<CartDto> ClearCart(Guid projectId, [FromQuery] Guid? supplierId, CancellationToken ct) => cart.ClearAsync(projectId, supplierId, ct);
 
-    /// <summary>Returns a validated link to the supplier's own site, or 404 when no permitted link exists. SmartBuy never checks out on the user's behalf.</summary>
+    /// <summary>Returns a validated link to the supplier's own site, or 404 when no permitted link exists. FindMyPrice never checks out on the user's behalf.</summary>
     [HttpPost("cart-items/{id:guid}/purchase-link")]
     public async Task<ActionResult<PurchaseLinkDto>> PurchaseLink(Guid id, CancellationToken ct)
     {
@@ -117,7 +117,7 @@ public sealed class PurchasingController(
             sb.AppendLine($"{PurchaseOrderExport.CsvCell(supplier.SupplierName)},Shipping (estimate),,,,,,{(supplier.Totals.Shipping is { } s ? s.ToString("0.00", CultureInfo.InvariantCulture) : "unknown")},,");
         }
         var bytes = new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        return File(bytes, "text/csv", "smartbuy-shopping-list.csv");
+        return File(bytes, "text/csv", "findmyprice-shopping-list.csv");
     }
 
     // ---------- Purchase orders ----------
@@ -162,7 +162,7 @@ public sealed class PurchasingController(
     [HttpPost("purchase-orders/{id:guid}/send"), RequireRole(OrgRole.PurchasingManager)]
     public Task<PoDto> Send(Guid id, SendRequest request, CancellationToken ct) => orders.SendAsync(id, request.Recipient, Role, ct);
 
-    /// <summary>Records that the user delivered the PO themselves. Stored as a manual record, not as a SmartBuy delivery.</summary>
+    /// <summary>Records that the user delivered the PO themselves. Stored as a manual record, not as a FindMyPrice delivery.</summary>
     [HttpPost("purchase-orders/{id:guid}/record-sent"), RequireRole(OrgRole.PurchasingManager)]
     public Task<PoDto> RecordSent(Guid id, RecordSentRequest request, CancellationToken ct) => orders.RecordSentManuallyAsync(id, request.Note, Role, ct);
 

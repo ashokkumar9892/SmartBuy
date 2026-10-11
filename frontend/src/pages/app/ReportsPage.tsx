@@ -48,7 +48,7 @@ export function ReportsPage() {
   const exportCsv = async () => {
     setExporting(true)
     try {
-      await api.download('/api/reports/spend.csv', 'smartbuy-spend-report.csv')
+      await api.download('/api/reports/spend.csv', 'findmyprice-spend-report.csv')
     } catch (err) {
       toast.error(errorMessage(err))
     } finally {

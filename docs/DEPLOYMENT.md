@@ -1,4 +1,4 @@
-# Deploying SmartBuy AI
+# Deploying FindMyPrice
 
 Three independent pieces:
 
@@ -110,7 +110,8 @@ Hangfire or Quartz.NET with a database store; `PriceAlertJob.RunAsync` is the si
 | AI lists and explanations | `Ai__Provider=claude`, `Ai__Claude__ApiKey` (or `openai` + key + model) | Rule-based demo parser; explanations use a template. |
 | Purchase-order email | `Smtp__Host`, `Smtp__FromAddress`, credentials | "Send" is shown as unavailable; POs can be exported or recorded as sent manually. |
 | Stripe billing | `Billing__StripeSecretKey`, `Billing__StripeWebhookSecret`, `Billing__Prices__pro`, `Billing__Prices__business` | Checkout unavailable. Webhook URL: `https://<api-host>/api/billing/webhook` (events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`). Start with test keys. |
-| Google sign-in | `Google__ClientId` (add the frontend origin as an authorized JavaScript origin) | Button shown as unavailable. |
+| Google sign-in | `Google__ClientId` (create an OAuth client in Google Cloud Console; add the frontend origin as an authorized JavaScript origin) | Button shown as unavailable. |
+| Facebook sign-in | `Facebook__AppId`, `Facebook__AppSecret`, `Facebook__GraphVersion` (create an app with Facebook Login at developers.facebook.com, add the frontend domain to it, and set the version to one Meta currently supports) | Button shown as unavailable. |
 
 None of these integrations has been run against the real service yet. Test each in a non-production environment first.
 
@@ -123,7 +124,7 @@ None of these integrations has been run against the real service yet. Test each 
 - [ ] `Cors__AllowedOrigins` lists only your real frontend origin(s).
 - [ ] `Billing__AllowManualPlanChange=false`.
 - [ ] `Swagger__Enabled=false` unless you intend the API reference to be public.
-- [ ] The database user owns only the SmartBuy database; the database is not reachable from the internet.
+- [ ] The database user owns only the FindMyPrice database; the database is not reachable from the internet.
 - [ ] Platform administrator password is strong, and `Seed__AdminPassword` is removed after first start.
 - [ ] Decide whether the public demo should be on (`demo_login` feature flag in the admin panel). Demo workspaces are
       shared and writable by anyone; reset them from Admin → Operations.

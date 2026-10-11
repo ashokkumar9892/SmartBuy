@@ -412,7 +412,7 @@ export function AdminPage() {
     <div className="min-h-screen bg-slate-50">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <Link to="/app" aria-label="SmartBuy AI workspace">
+          <Link to="/app" aria-label="FindMyPrice workspace">
             <Logo />
           </Link>
           <span className="hidden h-6 w-px bg-slate-200 sm:block" aria-hidden />
@@ -429,12 +429,12 @@ export function AdminPage() {
           <EmptyState
             icon={<ShieldAlert className="size-6" />}
             title="Platform administrator access is required"
-            description="This area is for SmartBuy platform operators. Organization owners and administrators manage their own organization from the workspace, and are not platform administrators."
+            description="This area is for FindMyPrice platform operators. Organization owners and administrators manage their own organization from the workspace, and are not platform administrators."
             action={<LinkButton to="/app" variant="primary">Back to workspace</LinkButton>}
           />
         ) : (
           <>
-            <PageHeader title="Platform administration" description={`Cross-organization operations for SmartBuy operators. Signed in as ${session.user.fullName}. Changes made here are recorded in the audit log.`} />
+            <PageHeader title="Platform administration" description={`Cross-organization operations for FindMyPrice operators. Signed in as ${session.user.fullName}. Changes made here are recorded in the audit log.`} />
             <Tabs
               tabs={TABS.map((t) => ({ id: t.id, label: t.label, count: t.id === 'matches' ? overview.data?.matchesNeedingReview : undefined }))}
               value={tab}

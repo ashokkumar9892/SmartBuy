@@ -80,7 +80,7 @@ export function DashboardPage() {
               </div>
               {data.recentProjects.length === 0 ? (
                 <div className="px-6 pb-6">
-                  <EmptyState icon={<FolderKanban className="size-5" />} title="Create your first project" description="Describe a job, enter items, or upload a list. SmartBuy compares it across suppliers."
+                  <EmptyState icon={<FolderKanban className="size-5" />} title="Create your first project" description="Describe a job, enter items, or upload a list. FindMyPrice compares it across suppliers."
                     action={session.permissions.canEditLists && <LinkButton to="/app/projects/new" variant="primary">New project</LinkButton>} />
                 </div>
               ) : (

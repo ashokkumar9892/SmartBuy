@@ -58,7 +58,7 @@ export function CartTab({ project, onGoToPlan, onGoToOrders }: { project: Projec
   return (
     <div className="space-y-6">
       <Notice tone="info" title="You complete each purchase yourself">
-        SmartBuy groups the cart by supplier and prepares each purchase. It does not check out or place orders for you. Use a supplier link, export the list, or raise a purchase order.
+        FindMyPrice groups the cart by supplier and prepares each purchase. It does not check out or place orders for you. Use a supplier link, export the list, or raise a purchase order.
       </Notice>
       {cart.containsDemoData && <Notice tone="info">Prices in this cart come from DEMO supplier data and are not live quotes.</Notice>}
 
@@ -68,7 +68,7 @@ export function CartTab({ project, onGoToPlan, onGoToOrders }: { project: Projec
             <SupplierGroup key={supplier.supplierId} supplier={supplier} canEdit={canEdit} canOrder={canOrder}
               onUpdate={(id, packs) => update.mutate({ id, packs })} onRemove={(id) => remove.mutate(id)}
               onOpenLink={(line) => openLink.mutate({ line, supplier: supplier.supplierName })} linkLoadingId={openLink.isPending ? openLink.variables?.line.id : undefined}
-              onExport={() => api.download(`/api/projects/${project.id}/cart/export.csv?supplierId=${supplier.supplierId}`, 'smartbuy-shopping-list.csv').catch(onError)}
+              onExport={() => api.download(`/api/projects/${project.id}/cart/export.csv?supplierId=${supplier.supplierId}`, 'findmyprice-shopping-list.csv').catch(onError)}
               onCreateOrder={() => createOrders.mutate(supplier.supplierId)} creating={createOrders.isPending} />
           ))}
         </div>
@@ -86,7 +86,7 @@ export function CartTab({ project, onGoToPlan, onGoToOrders }: { project: Projec
               {canOrder
                 ? canEdit && <Button variant="primary" className="w-full" icon={<FileText className="size-4" />} loading={createOrders.isPending} onClick={() => createOrders.mutate(undefined)}>Create purchase orders for all suppliers</Button>
                 : <UpgradeNotice feature="Purchase orders" reason="Purchase orders are part of the Business plan. You can still export the list or use supplier links." canManageBilling={session.permissions.canManageBilling} />}
-              <Button className="w-full" icon={<Download className="size-4" />} onClick={() => api.download(`/api/projects/${project.id}/cart/export.csv`, 'smartbuy-shopping-list.csv').catch(onError)}>Export full list (CSV)</Button>
+              <Button className="w-full" icon={<Download className="size-4" />} onClick={() => api.download(`/api/projects/${project.id}/cart/export.csv`, 'findmyprice-shopping-list.csv').catch(onError)}>Export full list (CSV)</Button>
               {canEdit && <Button variant="ghost" className="w-full" onClick={() => setClearing(true)}>Empty the cart</Button>}
             </div>
           </Card>
@@ -101,10 +101,10 @@ export function CartTab({ project, onGoToPlan, onGoToOrders }: { project: Projec
         <Modal open onClose={() => setLink(null)} title={`Continue at ${link.supplier}`}
           footer={<><Button onClick={() => setLink(null)}>Cancel</Button><a href={link.link.url} target="_blank" rel="noopener noreferrer" onClick={() => setLink(null)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-navy-900 px-4 text-sm font-medium text-white hover:bg-navy-800">Open {new URL(link.link.url).hostname} <ExternalLink className="size-4" /></a></>}>
           <div className="space-y-3 text-sm text-slate-600">
-            <p>You are leaving SmartBuy to buy <b className="text-navy-900">{link.line.packs} × {link.line.productTitle}</b>.</p>
+            <p>You are leaving FindMyPrice to buy <b className="text-navy-900">{link.line.packs} × {link.line.productTitle}</b>.</p>
             <Notice tone={link.link.kind === 'SupplierSearch' ? 'warning' : 'info'}>{link.link.note}</Notice>
             <p className="text-xs text-slate-500">
-              {link.link.isAffiliate ? 'This is an affiliate link: SmartBuy may earn a commission from the supplier at no cost to you.' : 'This is a plain link with no affiliate or tracking tag.'}
+              {link.link.isAffiliate ? 'This is an affiliate link: FindMyPrice may earn a commission from the supplier at no cost to you.' : 'This is a plain link with no affiliate or tracking tag.'}
               {' '}Price and availability are confirmed by the supplier at checkout.
             </p>
           </div>

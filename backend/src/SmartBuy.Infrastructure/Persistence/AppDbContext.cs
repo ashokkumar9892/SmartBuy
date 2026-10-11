@@ -60,6 +60,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.HasIndex(x => x.NormalizedEmail).IsUnique();
             e.HasIndex(x => x.GoogleSubject);
+            e.HasIndex(x => x.FacebookSubject);
             e.Property(x => x.Email).HasMaxLength(320);
             e.Property(x => x.NormalizedEmail).HasMaxLength(320);
             e.Property(x => x.FullName).HasMaxLength(200);

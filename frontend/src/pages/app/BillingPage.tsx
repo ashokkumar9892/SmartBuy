@@ -163,7 +163,7 @@ export function BillingPage() {
           {data.pricingNote && <Notice className="mb-4">{data.pricingNote}</Notice>}
           {!canManage && <Notice className="mb-4">Only an organization owner can change the plan. Ask your owner if you need a feature that is not included.</Notice>}
           {canManage && billing.stripeConfigured && (
-            <Notice className="mb-4">Card details are entered on Stripe. SmartBuy never sees or stores them.</Notice>
+            <Notice className="mb-4">Card details are entered on Stripe. FindMyPrice never sees or stores them.</Notice>
           )}
           {canManage && !billing.stripeConfigured && billing.manualPlanChangeAllowed && (
             <Notice tone="warning" className="mb-4">

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const ADMIN = { email: 'admin@smartbuy.local', password: 'ChangeMe!Admin2026' }
+const ADMIN = { email: 'admin@findmyprice.local', password: 'ChangeMe!Admin2026' }
 const shot = (page: Page, name: string) => page.screenshot({ path: `e2e/screenshots/${name}.png`, fullPage: true })
 
 async function openDemo(page: Page, business: string) {
@@ -13,7 +13,6 @@ async function register(page: Page) {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   await page.goto('/register')
   await page.getByLabel('Your name').fill('Erin Tester')
-  await page.getByLabel('Business name').fill('E2E Plumbing ' + id)
   await page.getByLabel('Work email').fill('e2e-' + id + '@example.test')
   await page.getByLabel('Password').fill('Sup3r-secret-pass')
   await page.getByRole('button', { name: 'Create account' }).click()
@@ -52,6 +51,7 @@ test.describe('public site', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByRole('alert')).toContainText('The email or password is incorrect.')
     await expect(page.getByText('Google sign-in is not configured on this server yet.')).toBeVisible()
+    await expect(page.getByText('Facebook sign-in is not configured on this server yet.')).toBeVisible()
   })
 
   test('Try Demo opens a sample business without sign-up', async ({ page }) => {

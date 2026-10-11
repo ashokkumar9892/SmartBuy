@@ -252,7 +252,7 @@ export function SuppliersPage() {
 
   return (
     <>
-      <PageHeader title="Suppliers" description="The suppliers SmartBuy compares, how each one is connected, and the account details your organization keeps for them." />
+      <PageHeader title="Suppliers" description="The suppliers FindMyPrice compares, how each one is connected, and the account details your organization keeps for them." />
 
       <div className="space-y-6">
         <Notice tone="info" title="Mock integrations serve demo data">
@@ -282,7 +282,7 @@ export function SuppliersPage() {
           </div>
         )}
 
-        <p className="text-xs text-slate-500">SmartBuy does not place orders with any supplier. Order placement is listed for each integration so that this is explicit.</p>
+        <p className="text-xs text-slate-500">FindMyPrice does not place orders with any supplier. Order placement is listed for each integration so that this is explicit.</p>
       </div>
 
       {editing && <SavedDetailsModal key={editing.id} supplier={editing} onClose={() => setEditing(null)} />}

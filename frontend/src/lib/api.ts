@@ -1,8 +1,8 @@
-// Base URL of the SmartBuy API. Empty means "same origin" (Vite dev proxy, or a Netlify /api proxy rule).
+// Base URL of the FindMyPrice API. Empty means "same origin" (Vite dev proxy, or a Netlify /api proxy rule).
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
-const ACCESS_KEY = 'smartbuy.access'
-const REFRESH_KEY = 'smartbuy.refresh'
+const ACCESS_KEY = 'findmyprice.access'
+const REFRESH_KEY = 'findmyprice.refresh'
 
 export class ApiError extends Error {
   status: number
@@ -104,7 +104,7 @@ async function request(path: string, options: Options = {}): Promise<Response> {
       }
     }
   } catch {
-    throw new ApiError(0, 'Cannot reach the SmartBuy server. Check your connection and try again.', 'network')
+    throw new ApiError(0, 'Cannot reach the FindMyPrice server. Check your connection and try again.', 'network')
   }
   if (!response.ok) throw await parseError(response)
   return response

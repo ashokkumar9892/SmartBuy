@@ -14,7 +14,7 @@ export function Logo({ light }: { light?: boolean }) {
     <span className="inline-flex items-center gap-2.5">
       <img src="/favicon.svg" alt="" className="size-8 rounded-lg" />
       <span className={clsx('text-lg font-semibold tracking-tight', light ? 'text-white' : 'text-navy-900')}>
-        SmartBuy <span className="text-accent-500">AI</span>
+        FindMy<span className="text-accent-500">Price</span>
       </span>
     </span>
   )

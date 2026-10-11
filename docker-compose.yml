@@ -1,4 +1,4 @@
-# Local development stack: PostgreSQL + the SmartBuy API. Run the frontend with `npm run dev` in ./frontend.
+# Local development stack: PostgreSQL + the FindMyPrice API. Run the frontend with `npm run dev` in ./frontend.
 #   docker compose up --build
 # API: http://localhost:5080 (Swagger at /swagger)   Postgres: localhost:5432
 services:
@@ -33,7 +33,7 @@ services:
       Cors__AllowedOrigins__0: http://localhost:5173
       App__FrontendUrl: http://localhost:5173
       Seed__DemoData: "true"
-      Seed__AdminEmail: ${Seed__AdminEmail:-admin@smartbuy.local}
+      Seed__AdminEmail: ${Seed__AdminEmail:-admin@findmyprice.local}
       Seed__AdminPassword: ${Seed__AdminPassword:-ChangeMe!Admin2026}
       Ai__Provider: ${Ai__Provider:-mock}
       Ai__Claude__ApiKey: ${Ai__Claude__ApiKey:-}

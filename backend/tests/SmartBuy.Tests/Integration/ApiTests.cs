@@ -73,11 +73,31 @@ public class AuthenticationTests(ApiFactory factory)
     [InlineData("a@example.test", "short1", "Name", "Org")]
     [InlineData("a@example.test", "onlyletterslong", "Name", "Org")]
     [InlineData("a@example.test", "Sup3r-secret-pass", "", "Org")]
-    [InlineData("a@example.test", "Sup3r-secret-pass", "Name", "")]
     public async Task Registration_input_is_validated(string email, string password, string fullName, string organizationName)
     {
         var response = await factory.CreateClient().PostAsJsonAsync("/api/auth/register", new { email, password, fullName, organizationName });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Sign_up_needs_only_name_email_and_password()
+    {
+        var email = $"solo-{Guid.NewGuid().ToString("N")[..10]}@example.test";
+        var response = await factory.CreateClient().PostAsJsonAsync("/api/auth/register", new { email, password = "Sup3r-secret-pass", fullName = "Dana Whitfield" });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var session = (await response.ReadJsonAsync())["session"]!;
+        Assert.Equal("Dana's workspace", session["organization"]!["name"]!.GetValue<string>());
+        Assert.Equal("Owner", session["organization"]!["role"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Facebook_sign_in_reports_not_configured_instead_of_pretending()
+    {
+        var config = await (await factory.CreateClient().GetAsync("/api/auth/config")).ReadJsonAsync();
+        Assert.False(config["facebookEnabled"]!.GetValue<bool>());
+        Assert.Null(config["facebookAppId"]);
+        var response = await factory.CreateClient().PostAsJsonAsync("/api/auth/facebook", new { accessToken = "x" });
+        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
     }
 
     [Fact]

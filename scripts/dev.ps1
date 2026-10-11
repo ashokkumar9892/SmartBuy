@@ -9,4 +9,4 @@ Start-Process powershell -ArgumentList '-NoExit', '-Command', $api
 Start-Process powershell -ArgumentList '-NoExit', '-Command', $web
 Write-Host 'API:      http://localhost:5080/swagger'
 Write-Host 'Frontend: http://localhost:5173'
-Write-Host 'Admin:    admin@smartbuy.local / ChangeMe!Admin2026  (development only)'
+Write-Host 'Admin:    admin@findmyprice.local / ChangeMe!Admin2026  (development only)'

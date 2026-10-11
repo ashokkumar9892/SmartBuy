@@ -32,7 +32,7 @@ public sealed class DataSeeder(AppDbContext db, TenantContext tenant, Comparison
         new DemoBusiness("green-valley-landscaping", "Green Valley Landscaping", Industry.Landscaping, "free", null, "Priya Nair", "Commercial grounds and HOA maintenance"),
     };
 
-    public static string DemoOwnerEmail(string slug) => $"owner@{slug}.demo.smartbuy.local";
+    public static string DemoOwnerEmail(string slug) => $"owner@{slug}.demo.findmyprice.local";
     public static Guid SupplierId(string code) => DemoCatalog.StableGuid("supplier:" + code);
 
     public async Task SeedAsync(CancellationToken ct)
@@ -71,7 +71,7 @@ public sealed class DataSeeder(AppDbContext db, TenantContext tenant, Comparison
     {
         if (await db.Plans.AnyAsync(ct)) return;
         db.Plans.AddRange(
-            new Plan { Code = "free", Name = "Free", SortOrder = 1, MonthlyPriceCents = 0, Description = "Try SmartBuy on a few projects each month.", MaxProjectsPerMonth = 3, MaxMembers = 1 },
+            new Plan { Code = "free", Name = "Free", SortOrder = 1, MonthlyPriceCents = 0, Description = "Try FindMyPrice on a few projects each month.", MaxProjectsPerMonth = 3, MaxMembers = 1 },
             new Plan { Code = "pro", Name = "Pro", SortOrder = 2, MonthlyPriceCents = 2900, Description = "For owner-operators who buy materials every week.", MaxProjectsPerMonth = 50, MaxMembers = 3, AiMaterialLists = true, AdvancedOptimization = true, PriceAlerts = true },
             new Plan { Code = "business", Name = "Business", SortOrder = 3, MonthlyPriceCents = 7900, Description = "For teams that need purchase orders, approvals and reporting.", MaxProjectsPerMonth = null, MaxMembers = 25, AiMaterialLists = true, AdvancedOptimization = true, PriceAlerts = true, PurchaseOrders = true, AdvancedReporting = true, ApprovalWorkflows = true });
     }
@@ -168,7 +168,7 @@ public sealed class DataSeeder(AppDbContext db, TenantContext tenant, Comparison
         if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.NormalizedEmail == normalized, ct)) return;
 
         var admin = new User { Email = email, NormalizedEmail = normalized, FullName = "Platform Administrator", PasswordHash = PasswordHasher.Hash(password), IsPlatformAdmin = true };
-        var org = new Organization { Name = "SmartBuy Operations", Slug = "smartbuy-operations", Industry = Industry.General };
+        var org = new Organization { Name = "FindMyPrice Operations", Slug = "findmyprice-operations", Industry = Industry.General };
         var business = await db.Plans.FirstAsync(p => p.Code == "business", ct);
         db.Users.Add(admin);
         db.Organizations.Add(org);
@@ -260,8 +260,8 @@ public sealed class DataSeeder(AppDbContext db, TenantContext tenant, Comparison
         User manager, employee;
         using (tenant.Elevate())
         {
-            manager = NewDemoUser($"maria@{org.Slug}.demo.smartbuy.local", "Maria Lopez");
-            employee = NewDemoUser($"sam@{org.Slug}.demo.smartbuy.local", "Sam Patel");
+            manager = NewDemoUser($"maria@{org.Slug}.demo.findmyprice.local", "Maria Lopez");
+            employee = NewDemoUser($"sam@{org.Slug}.demo.findmyprice.local", "Sam Patel");
             db.Users.AddRange(manager, employee);
             await db.SaveChangesAsync(ct);
         }

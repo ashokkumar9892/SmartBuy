@@ -1,9 +1,9 @@
-# SmartBuy AI
+# FindMyPrice
 
 **One List. Every Supplier. The Smarter Way to Buy.**
 
 An AI-assisted purchasing and price-optimization platform for small and medium-sized businesses. A user describes a
-job, enters items, or uploads a list; SmartBuy links each line to a catalog product, compares offers across suppliers
+job, enters items, or uploads a list; FindMyPrice links each line to a catalog product, compares offers across suppliers
 with pack sizes normalized, builds an optimized purchasing plan, and turns it into a supplier-grouped cart and
 purchase orders.
 
@@ -50,7 +50,7 @@ Open <http://localhost:5173>.
 
 - **Try Demo** opens one of three seeded businesses (ABC Plumbing, Premier Renovations, Green Valley Landscaping) with
   sample projects, comparisons, alerts and purchase orders. No sign-up needed.
-- **Platform admin (development only):** `admin@smartbuy.local` / `ChangeMe!Admin2026`, then open `/admin`.
+- **Platform admin (development only):** `admin@findmyprice.local` / `ChangeMe!Admin2026`, then open `/admin`.
 - **API documentation:** <http://localhost:5080/swagger>.
 - Delete `backend/src/SmartBuy.Api/smartbuy-dev.db` to start again from a clean seed.
 
@@ -95,7 +95,7 @@ subsets and then apply a single-move local search. Three strategies: Lowest Cost
 **Savings baseline.** Savings are always measured against a stated baseline: buying from the single supplier that
 carries the most of the list (the rest priced at the cheapest offer elsewhere).
 
-**Purchasing.** SmartBuy never places an order. The cart offers a plain link to the supplier, a CSV export, or a
+**Purchasing.** FindMyPrice never places an order. The cart offers a plain link to the supplier, a CSV export, or a
 purchase order. A PO is only marked *Sent* after the email channel confirms hand-off, or when a user explicitly records
 that they delivered it themselves (stored as a manual record).
 

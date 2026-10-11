@@ -1,4 +1,4 @@
-// Shapes returned by the SmartBuy API. Kept in one place so pages agree on the contract.
+// Shapes returned by the FindMyPrice API. Kept in one place so pages agree on the contract.
 
 export type Role = 'Viewer' | 'Employee' | 'PurchasingManager' | 'Administrator' | 'Owner'
 export type DataStatus = 'LIVE' | 'DEMO' | 'STALE'
@@ -57,6 +57,9 @@ export interface PublicConfig {
   selfSignupEnabled: boolean
   googleEnabled: boolean
   googleClientId: string | null
+  facebookEnabled: boolean
+  facebookAppId: string | null
+  facebookGraphVersion: string
   demoBusinesses: DemoBusiness[]
   plans: Plan[]
 }

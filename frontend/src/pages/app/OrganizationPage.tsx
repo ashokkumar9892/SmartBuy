@@ -322,7 +322,7 @@ function MembersSection({ canManage }: { canManage: boolean }) {
         loading={remove.isPending}
       >
         <p>
-          <strong className="text-navy-900">{removing?.fullName}</strong> ({removing?.email}) will lose access to this organization and be signed out of it. Their SmartBuy account is not deleted, and the projects and
+          <strong className="text-navy-900">{removing?.fullName}</strong> ({removing?.email}) will lose access to this organization and be signed out of it. Their FindMyPrice account is not deleted, and the projects and
           purchase orders they created stay in place.
         </p>
         {removeError && (
@@ -403,7 +403,7 @@ function AddMemberModal({ open, onClose, roles, onAdded }: { open: boolean; onCl
           onChange={(e) => setTemporaryPassword(e.target.value)}
           maxLength={200}
           autoComplete="off"
-          hint="If this person has no SmartBuy account yet, one is created with this temporary password for you to pass on. Email invitations are not sent."
+          hint="If this person has no FindMyPrice account yet, one is created with this temporary password for you to pass on. Email invitations are not sent."
         />
         {error && <Notice tone="error">{error}</Notice>}
       </form>
@@ -436,7 +436,7 @@ function RoleReference() {
         </tbody>
       </Table>
       <p className="px-5 py-4 text-xs text-slate-500 sm:px-6">
-        Platform administration is separate from these roles. It is granted to SmartBuy operators only, and an organization owner does not have it.
+        Platform administration is separate from these roles. It is granted to FindMyPrice operators only, and an organization owner does not have it.
       </p>
     </Card>
   )

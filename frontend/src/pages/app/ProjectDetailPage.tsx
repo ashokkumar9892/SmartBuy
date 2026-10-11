@@ -364,7 +364,7 @@ function AlternativesModal({ project, item, canApprove, onClose }: { project: Pr
         <div className="space-y-4">
           {data.isSafetyCritical && (
             <Notice tone="error" title="Safety-critical component">
-              {data.safetyNote} SmartBuy never proposes a substitute for this item on price alone; only alternatives with the same rating or listing can be approved.
+              {data.safetyNote} FindMyPrice never proposes a substitute for this item on price alone; only alternatives with the same rating or listing can be approved.
             </Notice>
           )}
           {item.approvedSubstituteName && (

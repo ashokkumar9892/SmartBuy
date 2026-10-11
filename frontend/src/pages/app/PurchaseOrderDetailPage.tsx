@@ -29,7 +29,7 @@ import { api, ApiError, errorMessage } from '../../lib/api'
 import { formatDateTime, money, qty, toDateInput, UNIT_LABELS, unitLabel } from '../../lib/format'
 import type { PoAction, PoItem, PurchaseOrder } from '../../lib/types'
 
-const FOOTNOTE = 'SmartBuy records and sends purchase orders. It does not place orders with suppliers or confirm that a supplier accepted one.'
+const FOOTNOTE = 'FindMyPrice records and sends purchase orders. It does not place orders with suppliers or confirm that a supplier accepted one.'
 const RECEIVING_STATUSES = ['Sent', 'Partially Received', 'Received']
 
 const dayFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
@@ -150,7 +150,7 @@ function DraftEditor({ po, onSaved, onCancel, onConflict }: { po: PurchaseOrder;
       if (row.description.trim().length > 500) return setProblem(`${line}: the description can be at most 500 characters.`)
       if (quantity === null || Number.isNaN(quantity) || quantity <= 0) return setProblem(`${line}: packages must be greater than zero.`)
       if (packQuantity === null || Number.isNaN(packQuantity) || packQuantity <= 0) return setProblem(`${line}: pack size must be greater than zero.`)
-      if (unitPrice === null || Number.isNaN(unitPrice) || unitPrice < 0) return setProblem(`${line}: enter the price per package. SmartBuy does not assume a price.`)
+      if (unitPrice === null || Number.isNaN(unitPrice) || unitPrice < 0) return setProblem(`${line}: enter the price per package. FindMyPrice does not assume a price.`)
       items.push({ description: row.description.trim(), supplierSku: row.supplierSku.trim() || null, quantity, packQuantity, unit: row.unit || 'each', unitPrice })
     }
     save.mutate({
@@ -355,7 +355,7 @@ function SendDialog({ po, onClose, run, pending, error }: DialogProps) {
       open
       onClose={onClose}
       title={`Send ${po.poNumber} to ${po.supplierName}`}
-      description="SmartBuy emails the purchase order PDF through this server's delivery channel."
+      description="FindMyPrice emails the purchase order PDF through this server's delivery channel."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -404,7 +404,7 @@ function RecordSentDialog({ po, onClose, run, pending, error }: DialogProps) {
       }
     >
       <div className="space-y-4">
-        <Notice tone="info">Use this when you delivered the order yourself (phone, counter, your own email). SmartBuy will record it as delivered manually; it does not send anything.</Notice>
+        <Notice tone="info">Use this when you delivered the order yourself (phone, counter, your own email). FindMyPrice will record it as delivered manually; it does not send anything.</Notice>
         <Textarea label="Note (optional)" rows={3} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} placeholder="For example: phoned in to the trade counter, spoke with Dana" hint="Saved with the order as the record of how and to whom you delivered it." />
         {error && <Notice tone="error">{error}</Notice>}
       </div>
@@ -816,7 +816,7 @@ export function PurchaseOrderDetailPage() {
         danger
         loading={action.isPending}
       >
-        The purchase order will be marked Cancelled in SmartBuy.
+        The purchase order will be marked Cancelled in FindMyPrice.
         {po.sentAt ? ' This order was already sent: cancelling here does not notify the supplier, so contact them directly.' : ' Nothing has been sent to the supplier.'}
       </ConfirmDialog>
       <ConfirmDialog open={dialog === 'delete'} onClose={closeDialog} onConfirm={() => remove.mutate()} title={`Delete ${po.poNumber}?`} confirmLabel="Delete purchase order" danger loading={remove.isPending}>

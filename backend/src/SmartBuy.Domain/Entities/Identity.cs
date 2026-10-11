@@ -8,6 +8,7 @@ public class User : Entity, ISoftDelete
     /// <summary>Null for accounts that only sign in through an external identity provider.</summary>
     public string? PasswordHash { get; set; }
     public string? GoogleSubject { get; set; }
+    public string? FacebookSubject { get; set; }
     /// <summary>Platform operator flag. Deliberately independent of any organization role.</summary>
     public bool IsPlatformAdmin { get; set; }
     public bool IsActive { get; set; } = true;

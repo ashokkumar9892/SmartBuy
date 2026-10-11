@@ -1568,6 +1568,9 @@ namespace SmartBuy.Infrastructure.Persistence.Migrations
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)");
 
+                    b.Property<string>("FacebookSubject")
+                        .HasColumnType("text");
+
                     b.Property<int>("FailedLoginCount")
                         .HasColumnType("integer");
 
@@ -1609,6 +1612,8 @@ namespace SmartBuy.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FacebookSubject");
 
                     b.HasIndex("GoogleSubject");
 

@@ -196,7 +196,7 @@ const benefits = [
   { icon: Sparkles, title: 'Lists from plain language', text: 'Describe the job, upload a spreadsheet or PDF, or reuse a past project. You review and approve every quantity before anything is priced.' },
   { icon: ShieldCheck, title: 'Honest about uncertainty', text: 'Unknown shipping, tax or stock is shown as unknown, never as zero. Every price is labelled Live, Demo or Stale.' },
   { icon: FileText, title: 'Purchase orders with approvals', text: 'Turn a plan into numbered purchase orders per supplier, route them for approval, and export to PDF or CSV.' },
-  { icon: Truck, title: 'You stay in control of buying', text: 'SmartBuy prepares the purchase and links you to each supplier. It never places an order behind your back.' },
+  { icon: Truck, title: 'You stay in control of buying', text: 'FindMyPrice prepares the purchase and links you to each supplier. It never places an order behind your back.' },
 ]
 
 const industries = [
@@ -218,12 +218,12 @@ const steps = [
 ]
 
 const faqs = [
-  { q: 'Are the prices live?', a: 'Only where a supplier is connected through an approved API. Until then SmartBuy runs on clearly labelled demo data so you can evaluate the workflow. Every price shows whether it is Live, Demo or Stale, and demo prices are never presented as supplier quotes.' },
-  { q: 'Does SmartBuy place orders for me?', a: 'No. SmartBuy builds the purchasing plan, groups your cart by supplier, links you to each supplier and produces purchase orders. Checkout happens on the supplier\'s own site or through your normal ordering process. An order is only ever reported as placed when a supported supplier API confirms it.' },
+  { q: 'Are the prices live?', a: 'Only where a supplier is connected through an approved API. Until then FindMyPrice runs on clearly labelled demo data so you can evaluate the workflow. Every price shows whether it is Live, Demo or Stale, and demo prices are never presented as supplier quotes.' },
+  { q: 'Does FindMyPrice place orders for me?', a: 'No. FindMyPrice builds the purchasing plan, groups your cart by supplier, links you to each supplier and produces purchase orders. Checkout happens on the supplier\'s own site or through your normal ordering process. An order is only ever reported as placed when a supported supplier API confirms it.' },
   { q: 'How are savings calculated?', a: 'Against a stated baseline: buying the whole list from the single supplier that carries the most of it. The optimized total and the baseline are shown side by side, and anything unknown, such as unpublished shipping, is excluded from both and flagged.' },
   { q: 'Can I trust the AI-generated quantities?', a: 'Treat them as a starting draft. AI proposes items and quantities and lists its assumptions; a person must review and approve the list before supplier search. They are not engineered or construction-grade take-offs. All money calculations are done by deterministic code, not by AI.' },
   { q: 'Will it swap in cheaper products automatically?', a: 'Never. Alternatives are suggestions with the price, specification and compatibility differences spelled out, and each one needs your explicit approval. Safety-critical electrical, plumbing and building components are not offered as substitutes on price alone.' },
-  { q: 'Which suppliers are supported?', a: 'The adapter architecture covers national retailers, marketplaces, independent local suppliers and Shopify or WooCommerce merchants. Each is switched on only when its official API access and terms allow it. SmartBuy does not scrape retailer websites.' },
+  { q: 'Which suppliers are supported?', a: 'The adapter architecture covers national retailers, marketplaces, independent local suppliers and Shopify or WooCommerce merchants. Each is switched on only when its official API access and terms allow it. FindMyPrice does not scrape retailer websites.' },
   { q: 'Is my company\'s data separate from other companies?', a: 'Yes. Each organization has its own users, projects, lists, purchase orders, suppliers and alerts, and isolation is enforced on every query on the server.' },
 ]
 
@@ -244,7 +244,7 @@ function planFeatures(plan: Plan): string[] {
 }
 
 const fallbackPlans: Plan[] = [
-  { code: 'free', name: 'Free', description: 'Try SmartBuy on a few projects each month.', monthlyPriceCents: 0, maxProjectsPerMonth: 3, maxMembers: 1, aiMaterialLists: false, advancedOptimization: false, priceAlerts: false, purchaseOrders: false, advancedReporting: false, approvalWorkflows: false },
+  { code: 'free', name: 'Free', description: 'Try FindMyPrice on a few projects each month.', monthlyPriceCents: 0, maxProjectsPerMonth: 3, maxMembers: 1, aiMaterialLists: false, advancedOptimization: false, priceAlerts: false, purchaseOrders: false, advancedReporting: false, approvalWorkflows: false },
   { code: 'pro', name: 'Pro', description: 'For owner-operators who buy materials every week.', monthlyPriceCents: 2900, maxProjectsPerMonth: 50, maxMembers: 3, aiMaterialLists: true, advancedOptimization: true, priceAlerts: true, purchaseOrders: false, advancedReporting: false, approvalWorkflows: false },
   { code: 'business', name: 'Business', description: 'For teams that need purchase orders, approvals and reporting.', monthlyPriceCents: 7900, maxProjectsPerMonth: null, maxMembers: 25, aiMaterialLists: true, advancedOptimization: true, priceAlerts: true, purchaseOrders: true, advancedReporting: true, approvalWorkflows: true },
 ]
@@ -262,7 +262,7 @@ export function LandingPage() {
     <div className="bg-canvas">
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
-          <Link to="/" aria-label="SmartBuy AI home"><Logo /></Link>
+          <Link to="/" aria-label="FindMyPrice home"><Logo /></Link>
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex" aria-label="Sections">
             {links.map(([href, label]) => <a key={href} href={href} className="hover:text-navy-900">{label}</a>)}
           </nav>
@@ -338,7 +338,7 @@ export function LandingPage() {
         <div className="mt-10 rounded-2xl border border-slate-200 bg-canvas p-6 text-sm leading-relaxed text-slate-600">
           <p className="font-semibold text-navy-900">Example</p>
           <p className="mt-1 italic">"I need 50 feet of 3/4-inch copper pipe, 20 elbows, 10 shutoff valves, and 5 faucets for a residential plumbing project."</p>
-          <p className="mt-2">SmartBuy turns this into four structured lines, links each to a catalog product, asks you to confirm the quantities, then prices every supplier that carries them.</p>
+          <p className="mt-2">FindMyPrice turns this into four structured lines, links each to a catalog product, asks you to confirm the quantities, then prices every supplier that carries them.</p>
         </div>
       </Section>
 
@@ -410,7 +410,7 @@ export function LandingPage() {
             <p className="mt-2 text-sm">One List. Every Supplier. The Smarter Way to Buy.</p>
           </div>
           <p className="max-w-md text-xs leading-relaxed text-navy-400">
-            SmartBuy AI is an independent purchasing tool. Supplier names belong to their owners and appear for comparison only; no affiliation or endorsement is implied. Prices shown from demo data are not supplier quotes.
+            FindMyPrice is an independent purchasing tool. Supplier names belong to their owners and appear for comparison only; no affiliation or endorsement is implied. Prices shown from demo data are not supplier quotes.
           </p>
         </div>
       </footer>
@@ -426,9 +426,9 @@ function ContactSection() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
   const contactEmail = import.meta.env.VITE_CONTACT_EMAIL as string | undefined
   const ready = form.name.trim() && /\S+@\S+\.\S+/.test(form.email) && form.message.trim()
-  // No message is stored or sent by SmartBuy: the form hands the text to the visitor's own email app.
+  // No message is stored or sent by FindMyPrice: the form hands the text to the visitor's own email app.
   const mailto = contactEmail
-    ? `mailto:${contactEmail}?subject=${encodeURIComponent(`SmartBuy AI enquiry from ${form.name}`)}&body=${encodeURIComponent(`${form.message}\n\n${form.name}\n${form.email}`)}`
+    ? `mailto:${contactEmail}?subject=${encodeURIComponent(`FindMyPrice enquiry from ${form.name}`)}&body=${encodeURIComponent(`${form.message}\n\n${form.name}\n${form.email}`)}`
     : null
 
   return (

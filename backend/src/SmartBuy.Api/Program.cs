@@ -22,6 +22,7 @@ var configuration = builder.Configuration;
 
 builder.Services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
 builder.Services.Configure<GoogleOptions>(configuration.GetSection("Google"));
+builder.Services.Configure<FacebookOptions>(configuration.GetSection("Facebook"));
 var jwt = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
 if (string.IsNullOrWhiteSpace(jwt.Key) || jwt.Key.Length < 32)
     throw new InvalidOperationException("Jwt:Key must be set to a random secret of at least 32 characters (environment variable Jwt__Key).");
@@ -100,13 +101,13 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "SmartBuy AI API",
+        Title = "FindMyPrice API",
         Version = "v1",
         Description = "Procurement comparison and optimization API. Send the access token from /api/auth/login as a Bearer token.",
     });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", Description = "Access token from /api/auth/login" });
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>() });
-    options.CustomSchemaIds(type => type.FullName?.Replace("+", ".").Replace("SmartBuy.", ""));
+    options.CustomSchemaIds(type => type.FullName?.Replace("+", ".").Replace("FindMyPrice.", ""));
 });
 
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database", tags: new[] { "ready" });
@@ -155,7 +156,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment() || configuration.GetValue("Swagger:Enabled", false))
 {
     app.UseSwagger();
-    app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "SmartBuy AI API v1"));
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "FindMyPrice API v1"));
 }
 
 app.UseCors();
@@ -166,7 +167,7 @@ app.UseAuthorization();
 
 app.MapHealthChecks("/health/live", new() { Predicate = _ => false }).DisableRateLimiting();
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") }).DisableRateLimiting();
-app.MapGet("/", () => Results.Json(new { name = "SmartBuy AI API", status = "ok", docs = "/swagger" })).ExcludeFromDescription();
+app.MapGet("/", () => Results.Json(new { name = "FindMyPrice API", status = "ok", docs = "/swagger" })).ExcludeFromDescription();
 app.MapControllers();
 
 await app.RunAsync();

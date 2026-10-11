@@ -10,9 +10,10 @@ type AuthContextValue = {
   loadError: Error | null
   retry: () => void
   login: (email: string, password: string) => Promise<Session>
-  register: (input: { email: string; password: string; fullName: string; organizationName: string; industry: string }) => Promise<Session>
+  register: (input: { email: string; password: string; fullName: string }) => Promise<Session>
   openDemo: (business: string) => Promise<Session>
   loginWithGoogle: (idToken: string) => Promise<Session>
+  loginWithFacebook: (accessToken: string) => Promise<Session>
   switchOrganization: (organizationId: string) => Promise<void>
   logout: () => Promise<void>
   refreshSession: () => Promise<void>
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register: async (input) => accept(await api.anonymous.post<AuthResponse>('/api/auth/register', input)),
       openDemo: async (business) => accept(await api.anonymous.post<AuthResponse>('/api/auth/demo', { business })),
       loginWithGoogle: async (idToken) => accept(await api.anonymous.post<AuthResponse>('/api/auth/google', { idToken })),
+      loginWithFacebook: async (accessToken) => accept(await api.anonymous.post<AuthResponse>('/api/auth/facebook', { accessToken })),
       switchOrganization: async (organizationId) => {
         accept(await api.post<AuthResponse>('/api/auth/switch-organization', { organizationId }))
       },

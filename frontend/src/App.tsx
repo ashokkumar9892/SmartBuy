@@ -33,7 +33,7 @@ function NotFound() {
       <p className="text-sm font-semibold uppercase tracking-widest text-accent-600">404</p>
       <h1 className="text-3xl font-semibold text-navy-900">This page does not exist</h1>
       <p className="max-w-md text-slate-500">The link may be out of date, or the item may belong to a different organization.</p>
-      <LinkButton to="/" variant="primary">Back to SmartBuy</LinkButton>
+      <LinkButton to="/" variant="primary">Back to FindMyPrice</LinkButton>
     </div>
   )
 }

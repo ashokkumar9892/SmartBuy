@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
@@ -20,13 +21,15 @@ public sealed record RegisterRequest(
     [Required, EmailAddress, MaxLength(320)] string Email,
     [Required, MinLength(10, ErrorMessage = "Use a password of at least 10 characters."), MaxLength(200)] string Password,
     [Required, MaxLength(200)] string FullName,
-    [Required, MaxLength(200)] string OrganizationName,
+    // Optional: most people just want to start. A workspace is created for them and can be renamed later.
+    [MaxLength(200)] string? OrganizationName = null,
     Industry Industry = Industry.General);
 
 public sealed record LoginRequest([Required, MaxLength(320)] string Email, [Required, MaxLength(200)] string Password);
 public sealed record RefreshRequest([Required, MaxLength(200)] string RefreshToken);
 public sealed record DemoLoginRequest([Required, MaxLength(80)] string Business);
 public sealed record GoogleLoginRequest([Required] string IdToken);
+public sealed record FacebookLoginRequest([Required, MaxLength(2000)] string AccessToken);
 public sealed record SwitchOrganizationRequest(Guid OrganizationId);
 
 public sealed record UserDto(Guid Id, string Email, string FullName, bool IsPlatformAdmin, bool IsDemo);
@@ -41,7 +44,7 @@ public sealed record PermissionsDto(bool CanEditLists, bool CanManagePurchasing,
 public sealed record SessionDto(UserDto User, OrganizationSummary Organization, IReadOnlyList<OrganizationSummary> Organizations, PlanInfo Plan, PermissionsDto Permissions, string AiProvider);
 public sealed record AuthResponse(string AccessToken, DateTime ExpiresAt, string RefreshToken, SessionDto Session);
 public sealed record DemoBusinessDto(string Slug, string Name, string Industry, string Tagline, string Plan);
-public sealed record PublicConfig(bool DemoEnabled, bool SelfSignupEnabled, bool GoogleEnabled, string? GoogleClientId, IReadOnlyList<DemoBusinessDto> DemoBusinesses, IReadOnlyList<PlanInfo> Plans);
+public sealed record PublicConfig(bool DemoEnabled, bool SelfSignupEnabled, bool GoogleEnabled, string? GoogleClientId, bool FacebookEnabled, string? FacebookAppId, string FacebookGraphVersion, IReadOnlyList<DemoBusinessDto> DemoBusinesses, IReadOnlyList<PlanInfo> Plans);
 
 [ApiController]
 [Route("api/auth")]
@@ -53,6 +56,8 @@ public sealed partial class AuthController(
     AiGateway ai,
     IOptions<JwtOptions> jwt,
     IOptions<GoogleOptions> google,
+    IOptions<FacebookOptions> facebook,
+    IHttpClientFactory httpClientFactory,
     TimeProvider time) : ApiController
 {
     private const int MaxFailedLogins = 5;
@@ -73,6 +78,9 @@ public sealed partial class AuthController(
             await flags.IsEnabledAsync("self_signup", ct),
             !string.IsNullOrWhiteSpace(google.Value.ClientId),
             google.Value.ClientId,
+            facebook.Value.IsConfigured,
+            facebook.Value.IsConfigured ? facebook.Value.AppId : null,
+            facebook.Value.GraphVersion,
             DataSeeder.DemoBusinesses.Where(b => demoSlugs.Contains(b.Slug)).Select(b => new DemoBusinessDto(b.Slug, b.Name, b.Industry.ToString(), b.Tagline, b.PlanCode)).ToList(),
             plans.Select(PlanInfo.From).ToList());
     }
@@ -168,27 +176,76 @@ public sealed partial class AuthController(
             return Problem(statusCode: 401, title: "Google sign-in could not be verified.");
         }
         if (!payload.EmailVerified) return Problem(statusCode: 401, title: "Your Google email address is not verified.");
+        return await SignInExternalAsync("google", payload.Subject, payload.Email, payload.Name, ct);
+    }
 
+    /// <summary>
+    /// Facebook sign-in. The browser sends the access token from Facebook Login; it is verified with Facebook
+    /// (valid, and issued for this app) before any account is touched. Disabled (501) until the app ID and secret are set.
+    /// </summary>
+    [HttpPost("facebook"), AllowAnonymous, EnableRateLimiting("auth")]
+    public async Task<ActionResult<AuthResponse>> Facebook(FacebookLoginRequest request, CancellationToken ct)
+    {
+        var options = facebook.Value;
+        if (!options.IsConfigured) return Problem(statusCode: 501, title: "Facebook sign-in is not configured on this server.");
+        var http = httpClientFactory.CreateClient("facebook");
+        http.Timeout = TimeSpan.FromSeconds(10);
+        try
+        {
+            var appToken = Uri.EscapeDataString($"{options.AppId}|{options.AppSecret}");
+            using var debug = JsonDocument.Parse(await http.GetStringAsync(
+                $"https://graph.facebook.com/debug_token?input_token={Uri.EscapeDataString(request.AccessToken)}&access_token={appToken}", ct));
+            var data = debug.RootElement.GetProperty("data");
+            var valid = data.TryGetProperty("is_valid", out var isValid) && isValid.ValueKind == JsonValueKind.True;
+            var appId = data.TryGetProperty("app_id", out var id) ? id.GetString() : null;
+            // A token issued for some other Facebook app must never sign anyone in here.
+            if (!valid || appId != options.AppId) return Problem(statusCode: 401, title: "Facebook sign-in could not be verified.");
+
+            using var me = JsonDocument.Parse(await http.GetStringAsync(
+                $"https://graph.facebook.com/me?fields=id,name,email&access_token={Uri.EscapeDataString(request.AccessToken)}", ct));
+            var subject = me.RootElement.GetProperty("id").GetString();
+            var email = me.RootElement.TryGetProperty("email", out var e) ? e.GetString() : null;
+            var name = me.RootElement.TryGetProperty("name", out var n) ? n.GetString() : null;
+            if (string.IsNullOrWhiteSpace(subject)) return Problem(statusCode: 401, title: "Facebook sign-in could not be verified.");
+            if (string.IsNullOrWhiteSpace(email))
+                return Problem(statusCode: 400, title: "Facebook did not share an email address. Allow email access, or sign up with your email instead.");
+            return await SignInExternalAsync("facebook", subject, email, name, ct);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or KeyNotFoundException or TaskCanceledException)
+        {
+            return Problem(statusCode: 502, title: "Facebook could not be reached to verify the sign-in. Try again.");
+        }
+    }
+
+    /// <summary>Signs in (or creates) the account behind an identity that the provider has already verified.</summary>
+    private async Task<ActionResult<AuthResponse>> SignInExternalAsync(string provider, string subject, string email, string? name, CancellationToken ct)
+    {
         using var elevated = Tenant.Elevate();
-        var normalized = payload.Email.ToUpperInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(u => u.GoogleSubject == payload.Subject || u.NormalizedEmail == normalized, ct);
+        var normalized = email.Trim().ToUpperInvariant();
+        var user = provider == "google"
+            ? await db.Users.FirstOrDefaultAsync(u => u.GoogleSubject == subject, ct)
+            : await db.Users.FirstOrDefaultAsync(u => u.FacebookSubject == subject, ct);
+        // Same verified email as an existing account: link the provider to it rather than creating a duplicate.
+        user ??= await db.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalized, ct);
+
         Guid? organizationId;
         if (user is null)
         {
             if (!await flags.IsEnabledAsync("self_signup", ct)) throw new BusinessRuleException("New sign-ups are currently closed.", "signup_closed");
-            user = new User { Email = payload.Email, NormalizedEmail = normalized, FullName = payload.Name ?? payload.Email, GoogleSubject = payload.Subject };
+            user = new User { Email = email.Trim(), NormalizedEmail = normalized, FullName = string.IsNullOrWhiteSpace(name) ? email.Trim() : name.Trim() };
             db.Users.Add(user);
-            organizationId = (await CreateOrganizationAsync(user, $"{user.FullName}'s Business", Industry.General, ct)).Id;
+            organizationId = (await CreateOrganizationAsync(user, null, Industry.General, ct)).Id;
         }
         else
         {
             if (!user.IsActive || user.IsDemo) return Problem(statusCode: 403, title: "This account cannot sign in.");
-            user.GoogleSubject ??= payload.Subject;
             organizationId = await DefaultOrganizationAsync(user.Id, ct);
             if (organizationId is null) return Problem(statusCode: 403, title: "This account is not a member of any organization.");
         }
+        if (provider == "google") user.GoogleSubject ??= subject;
+        else user.FacebookSubject ??= subject;
         user.LastLoginAt = time.GetUtcNow().UtcDateTime;
-        audit.Record("auth.login_google", nameof(User), user.Id, organizationId: organizationId, userId: user.Id);
+        audit.Record($"auth.login_{provider}", nameof(User), user.Id, organizationId: organizationId, userId: user.Id);
         await db.SaveChangesAsync(ct);
         return await IssueAsync(user, organizationId.Value, ct);
     }
@@ -255,8 +312,9 @@ public sealed partial class AuthController(
             throw new ValidationException("Use a password that mixes letters with numbers or symbols.");
     }
 
-    private async Task<Organization> CreateOrganizationAsync(User user, string name, Industry industry, CancellationToken ct)
+    private async Task<Organization> CreateOrganizationAsync(User user, string? name, Industry industry, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(name)) name = user.FullName.Trim().Split(" ")[0] + "'s workspace";
         var baseSlug = SlugPattern().Replace(name.Trim().ToLowerInvariant(), "-").Trim('-');
         if (baseSlug.Length == 0) baseSlug = "organization";
         if (baseSlug.Length > 60) baseSlug = baseSlug[..60];

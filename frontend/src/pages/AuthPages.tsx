@@ -2,10 +2,10 @@ import { ArrowRight, Building2, FlaskConical } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Logo } from '../components/AppLayout'
-import { Badge, Button, Input, Notice, Select, Skeleton, Unavailable } from '../components/ui'
+import { Badge, Button, Input, Notice, Skeleton, Unavailable } from '../components/ui'
 import { errorMessage } from '../lib/api'
 import { useAuth, usePublicConfig } from '../lib/auth'
-import { INDUSTRIES, industryLabel, type DemoBusiness } from '../lib/types'
+import { industryLabel, type DemoBusiness } from '../lib/types'
 
 function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle: ReactNode; children: ReactNode; footer: ReactNode }) {
   return (
@@ -91,6 +91,86 @@ function GoogleButton() {
   )
 }
 
+type FacebookSdk = {
+  init: (options: { appId: string; version: string; cookie: boolean; xfbml: boolean }) => void
+  login: (callback: (response: { authResponse?: { accessToken?: string } | null }) => void, options: { scope: string }) => void
+}
+
+function loadFacebookSdk(appId: string, version: string): Promise<FacebookSdk> {
+  const scope = window as unknown as { FB?: FacebookSdk; fbAsyncInit?: () => void }
+  if (scope.FB) return Promise.resolve(scope.FB)
+  return new Promise((resolve, reject) => {
+    scope.fbAsyncInit = () => {
+      scope.FB!.init({ appId, version, cookie: false, xfbml: false })
+      resolve(scope.FB!)
+    }
+    const script = document.createElement('script')
+    script.src = 'https://connect.facebook.net/en_US/sdk.js'
+    script.async = true
+    script.crossOrigin = 'anonymous'
+    script.onerror = () => reject(new Error('Facebook sign-in could not be loaded.'))
+    document.head.appendChild(script)
+  })
+}
+
+/**
+ * Facebook sign-in. Shown as unavailable until the server has a Facebook app configured; the Facebook script is only
+ * loaded when the button is used. The access token is verified on the server before anyone is signed in.
+ */
+function FacebookButton() {
+  const { data } = usePublicConfig()
+  const { loginWithFacebook } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const appId = data?.facebookEnabled ? data.facebookAppId : null
+
+  if (!appId || !data) return <Unavailable label="Continue with Facebook" reason="Facebook sign-in is not configured on this server yet." />
+  const version = data.facebookGraphVersion
+
+  async function start(id: string) {
+    setBusy(true)
+    setError(null)
+    try {
+      const sdk = await loadFacebookSdk(id, version)
+      sdk.login(
+        (response) => {
+          const token = response.authResponse?.accessToken
+          if (!token) {
+            setBusy(false)
+            return setError('Facebook sign-in was cancelled.')
+          }
+          loginWithFacebook(token).catch((e) => {
+            setError(errorMessage(e))
+            setBusy(false)
+          })
+        },
+        { scope: 'public_profile,email' },
+      )
+    } catch (e) {
+      setError(errorMessage(e))
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div>
+      <Button className="w-full max-w-[320px]" loading={busy} onClick={() => start(appId)} icon={<span className="flex size-5 items-center justify-center rounded-full bg-[#1877f2] text-xs font-bold text-white" aria-hidden>f</span>}>
+        Continue with Facebook
+      </Button>
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+    </div>
+  )
+}
+
+function SocialSignIn() {
+  return (
+    <div className="space-y-3">
+      <GoogleButton />
+      <FacebookButton />
+    </div>
+  )
+}
+
 function Divider() {
   return (
     <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
@@ -129,11 +209,11 @@ export function LoginPage() {
 
   return (
     <AuthShell
-      title="Sign in to SmartBuy"
+      title="Sign in to FindMyPrice"
       subtitle="Welcome back. Enter your details to continue."
       footer={
         <>
-          New to SmartBuy? <Link to="/register" className="font-medium text-accent-600 hover:underline">Create a free account</Link>
+          New to FindMyPrice? <Link to="/register" className="font-medium text-accent-600 hover:underline">Create a free account</Link>
           <span className="mx-2 text-slate-300">|</span>
           <Link to="/demo" className="font-medium text-accent-600 hover:underline">Try the demo</Link>
         </>
@@ -148,7 +228,7 @@ export function LoginPage() {
         </Button>
       </form>
       <Divider />
-      <GoogleButton />
+      <SocialSignIn />
     </AuthShell>
   )
 }
@@ -156,7 +236,7 @@ export function LoginPage() {
 export function RegisterPage() {
   const { session, register } = useAuth()
   const { data: config } = usePublicConfig()
-  const [form, setForm] = useState({ fullName: '', organizationName: '', industry: 'Plumbing', email: '', password: '' })
+  const [form, setForm] = useState({ fullName: '', email: '', password: '' })
   const justRegistered = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -184,7 +264,7 @@ export function RegisterPage() {
 
   return (
     <AuthShell
-      title="Create your SmartBuy account"
+      title="Create your FindMyPrice account"
       subtitle="Start on the Free plan. No card required."
       footer={<>Already have an account? <Link to="/login" className="font-medium text-accent-600 hover:underline">Sign in</Link></>}
     >
@@ -194,22 +274,16 @@ export function RegisterPage() {
         <form onSubmit={submit} className="space-y-4" noValidate>
           {error && <Notice tone="error">{error}</Notice>}
           <Input label="Your name" autoComplete="name" required value={form.fullName} onChange={set('fullName')} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Business name" autoComplete="organization" required value={form.organizationName} onChange={set('organizationName')} />
-            <Select label="Industry" value={form.industry} onChange={set('industry')}>
-              {INDUSTRIES.map((i) => <option key={i.value} value={i.value}>{i.label}</option>)}
-            </Select>
-          </div>
           <Input label="Work email" type="email" autoComplete="email" required value={form.email} onChange={set('email')} />
           <Input label="Password" type="password" autoComplete="new-password" required value={form.password} onChange={set('password')} error={passwordProblem} hint="At least 10 characters, mixing letters with numbers or symbols." />
-          <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy} disabled={!form.fullName || !form.organizationName || !form.email || !form.password || !!passwordProblem}>
+          <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy} disabled={!form.fullName || !form.email || !form.password || !!passwordProblem}>
             Create account
           </Button>
-          <p className="text-xs leading-relaxed text-slate-500">You become the owner of a new organization on the Free plan. You can invite your team and change plans later.</p>
+          <p className="text-xs leading-relaxed text-slate-500">You start on the Free plan with your own workspace. Add your business name, industry and team later under Organization, if you need them.</p>
         </form>
       )}
       <Divider />
-      <GoogleButton />
+      <SocialSignIn />
     </AuthShell>
   )
 }
@@ -234,9 +308,9 @@ export function DemoBusinessCards({ compact }: { compact?: boolean }) {
   }
 
   if (isLoading) return <div className="grid gap-4 sm:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-40" />)}</div>
-  if (isError) return <Notice tone="error" title="The demo could not be loaded">The SmartBuy server is not reachable right now. Try again in a moment.</Notice>
+  if (isError) return <Notice tone="error" title="The demo could not be loaded">The FindMyPrice server is not reachable right now. Try again in a moment.</Notice>
   if (!config?.demoEnabled || config.demoBusinesses.length === 0)
-    return <Notice tone="warning" title="The demo is switched off">The platform administrator has disabled the demo workspaces. Create a free account to explore SmartBuy with your own list.</Notice>
+    return <Notice tone="warning" title="The demo is switched off">The platform administrator has disabled the demo workspaces. Create a free account to explore FindMyPrice with your own list.</Notice>
 
   return (
     <div>

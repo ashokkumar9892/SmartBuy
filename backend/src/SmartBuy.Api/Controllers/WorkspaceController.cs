@@ -304,6 +304,6 @@ public sealed class WorkspaceController(
         foreach (var (name, rows) in new[] { ("Supplier", report.BySupplier), ("Month", report.ByMonth), ("Project", report.ByProject) })
             foreach (var row in rows)
                 sb.AppendLine($"{name},{PurchaseOrderExport.CsvCell(row.Label)},{row.Orders},{row.Total.ToString("0.00", CultureInfo.InvariantCulture)}");
-        return File(new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray(), "text/csv", "smartbuy-spend-report.csv");
+        return File(new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray(), "text/csv", "findmyprice-spend-report.csv");
     }
 }

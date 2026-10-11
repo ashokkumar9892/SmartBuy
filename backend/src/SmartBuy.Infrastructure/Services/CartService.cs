@@ -40,7 +40,7 @@ public static class SafeLink
 {
     /// <summary>
     /// An outbound link is only handed to the browser when it is HTTPS and points at the supplier's own registered site.
-    /// This stops a compromised or buggy adapter from turning SmartBuy into an open redirect.
+    /// This stops a compromised or buggy adapter from turning FindMyPrice into an open redirect.
     /// </summary>
     public static bool IsAllowed(string? url, string? supplierWebsite)
     {

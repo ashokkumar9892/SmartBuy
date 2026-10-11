@@ -31,6 +31,16 @@ public sealed class GoogleOptions
     public string? ClientId { get; set; }
 }
 
+public sealed class FacebookOptions
+{
+    /// <summary>Facebook Login stays disabled until both the app ID and the app secret are set.</summary>
+    public string? AppId { get; set; }
+    public string? AppSecret { get; set; }
+    /// <summary>Graph API version the browser SDK is initialized with. Keep it on a version Meta still supports.</summary>
+    public string GraphVersion { get; set; } = "v21.0";
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(AppId) && !string.IsNullOrWhiteSpace(AppSecret);
+}
+
 public sealed class TokenService(IOptions<JwtOptions> options, TimeProvider time)
 {
     public const string OrganizationClaim = "org";

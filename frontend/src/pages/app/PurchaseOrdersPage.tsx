@@ -149,7 +149,7 @@ export function PurchaseOrdersPage() {
     <>
       <PageHeader
         title="Purchase orders"
-        description="Draft, approve, send and receive purchase orders. SmartBuy records and sends purchase orders; it does not place orders with suppliers."
+        description="Draft, approve, send and receive purchase orders. FindMyPrice records and sends purchase orders; it does not place orders with suppliers."
         actions={newButton}
       />
 
