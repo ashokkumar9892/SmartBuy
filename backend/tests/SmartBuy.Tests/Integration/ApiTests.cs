@@ -785,6 +785,10 @@ public class DemoAndPlatformTests(ApiFactory factory)
         Assert.Empty(none["results"]!.AsArray());
         Assert.NotEmpty(none["suggestions"]!.AsArray());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/public/search?q=")).StatusCode);
+
+        // The search box suggests from this list as the visitor types.
+        var catalog = (await (await client.GetAsync("/api/public/catalog")).ReadJsonAsync()).AsArray();
+        Assert.Contains(catalog, p => p!["name"]!.GetValue<string>().Contains("Copper Pipe") && p["category"]!.GetValue<string>() == "Pipe");
     }
 
     [Fact]

@@ -23,7 +23,13 @@ test.describe('public site', () => {
   test('a visitor searches a product, compares supplier prices and is sent to the supplier to buy', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Find the best price before you buy')
-    await page.getByRole('searchbox', { name: 'Search for a product' }).fill('copper pipe')
+    // Suggestions appear while typing, and picking one runs the search.
+    await page.getByRole('combobox', { name: 'Search for a product' }).fill('smoke')
+    await page.getByRole('option', { name: /Smoke Alarm/ }).first().click()
+    await expect(page).toHaveURL(/\/search\?q=Sentra/)
+    await expect(page.getByRole('heading', { level: 2 }).first()).toContainText('Smoke Alarm')
+
+    await page.getByRole('combobox', { name: 'Search for a product' }).fill('copper pipe')
     await page.getByRole('button', { name: 'Find prices' }).click()
     await expect(page).toHaveURL(/\/search\?q=copper/)
     await expect(page.getByRole('heading', { level: 1 })).toContainText('for "copper pipe"')
@@ -38,7 +44,7 @@ test.describe('public site', () => {
     await expect(buy).toHaveAttribute('rel', /noopener/)
     await shot(page, '00-search-results')
 
-    await page.getByRole('searchbox', { name: 'Search for a product' }).fill('quantum flux capacitor')
+    await page.getByRole('combobox', { name: 'Search for a product' }).fill('quantum flux capacitor')
     await page.getByRole('button', { name: 'Find prices' }).click()
     await expect(page.getByText(/No prices found for/)).toBeVisible()
   })

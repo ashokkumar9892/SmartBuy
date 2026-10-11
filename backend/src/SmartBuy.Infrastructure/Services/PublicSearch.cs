@@ -29,6 +29,8 @@ public sealed record SearchProduct(string ProductId, string Name, string Categor
 
 public sealed record SearchResponse(string Query, bool DemoData, IReadOnlyList<SearchProduct> Results, IReadOnlyList<string> Suggestions);
 
+public sealed record CatalogEntry(string Name, string Category);
+
 /// <summary>
 /// Public product search: type a product, see each supplier's price, follow a link to buy at the supplier.
 /// Uses the same catalog, matching and supplier adapters as the business workspace. Nothing is purchased here.
@@ -36,6 +38,10 @@ public sealed record SearchResponse(string Query, bool DemoData, IReadOnlyList<S
 public sealed class PublicSearchService(AppDbContext db, CatalogResolver resolver, SupplierCatalogService catalog, ISupplierProviderRegistry registry, TimeProvider time)
 {
     public static readonly string[] Suggestions = { "copper pipe", "LED bulb", "air filter", "interior paint", "smoke alarm", "mulch", "GFCI outlet", "faucet", "drywall screws", "AA batteries" };
+
+    /// <summary>Every product that can be searched, so the search box can suggest matches while the visitor types.</summary>
+    public async Task<IReadOnlyList<CatalogEntry>> CatalogAsync(CancellationToken ct) =>
+        await db.CanonicalProducts.AsNoTracking().OrderBy(p => p.Name).Select(p => new CatalogEntry(p.Name, p.Category)).ToListAsync(ct);
 
     public async Task<SearchResponse> SearchAsync(string query, CancellationToken ct)
     {

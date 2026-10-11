@@ -317,6 +317,7 @@ export default async (request: Request) => {
   const body = async () => (await request.json().catch(() => ({}))) as Record<string, unknown>
   try {
     if (request.method === 'GET' && path === '/api/public/search') return json(search(url.searchParams.get('q') ?? ''))
+    if (request.method === 'GET' && path === '/api/public/catalog') return json(demo.products.map((p) => ({ name: p.name, category: p.category })).sort((a, b) => a.name.localeCompare(b.name)))
     if (request.method === 'GET' && path === '/api/auth/config') {
       const facebookAppId = Netlify.env.get('FACEBOOK_APP_ID') && Netlify.env.get('FACEBOOK_APP_SECRET') ? Netlify.env.get('FACEBOOK_APP_ID') : null
       return json({

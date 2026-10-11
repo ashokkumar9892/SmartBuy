@@ -86,6 +86,7 @@ export interface SearchOffer {
 
 export interface SearchProduct { productId: string; name: string; category: string; unit: string; isSafetyCritical: boolean; offers: SearchOffer[] }
 
+export interface CatalogEntry { name: string; category: string }
 export interface SearchResponse { query: string; demoData: boolean; results: SearchProduct[]; suggestions: string[] }
 
 export interface SavedProduct { productId: string; name: string; query: string; bestPrice: number | null; bestSupplier: string | null; unit: string; savedAt: string }
